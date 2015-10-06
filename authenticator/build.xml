@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+
+<!-- AuthService, AuthClient build file -->
+<!-- author: Zdenek Maxa -->
+
+<!-- basedir attribute to be adjusted - target build directory - - - - -  -->
+<project name="authenticator" default="usage" basedir=".">
+
+    <!-- begin properties - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- read in overriden properties from ant.properties file  - - - - - -->
+    <property file="ant.properties"/>
+    <property name="appName" value="authenticator"/>
+
+    <!-- ===============================================================  -->
+    
+    <!-- targets begin  - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <!-- ===============================================================  -->
+
+    
+    <!-- compile target   - - - - - - - - - - - - - - - - - - - - - - -  -->
+    <target name="compile" description="Compiles all source files">
+
+        <echo>
+            Executing target: compile
+        </echo>
+
+        <mkdir dir="classes"/>
+
+        <javac srcdir="src" destdir="classes" deprecation="on" debug="on">
+            <compilerarg value="-g"/> <!-- debug info -->
+            <!-- <compilerarg value="-Xlint:unchecked"/> -->
+            <!-- */ one directory deep -->
+            <include name="**/*.java"/>
+            <classpath>
+                <fileset dir="../globus">
+                    <include name="*.jar"/>
+                </fileset>
+                <fileset dir="../fdt">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+
+
+    <!-- jar target - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <target name="jars">
+
+        <echo>
+            Executing target: jars
+        </echo>
+
+        <!-- jar - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+        <jar destfile="authservice.jar">
+            <fileset dir="classes">
+                <include name="**/*.class"/>
+            </fileset>
+            <manifest>
+                <attribute name="Built-By"   value="${user.name}"/>
+                <attribute name="Main-Class" value="authenticator.AuthService"/>
+                <attribute name="Implementation-Title" value="AuthService"/>
+            </manifest>
+        </jar>
+
+        <jar destfile="authclient.jar">
+            <fileset dir="classes">
+                <include name="**/*.class"/>
+            </fileset>
+            <manifest>
+                <attribute name="Built-By"   value="${user.name}"/>
+                <attribute name="Main-Class" value="authenticator.AuthClient"/>
+                <attribute name="Implementation-Title" value="AuthClient"/>
+            </manifest>
+        </jar>
+
+    </target>
+
+        
+    <!-- clean target  - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+    <target name="clean" description="Erase *.class generated files">
+        <echo>
+            Executing target: clean
+        </echo>
+        <delete dir="classes"/>
+    </target>
+
+
+    <!-- usage target - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <target name="usage" description="Prints usage hint">
+        <echo level="info" message="Usage:"/>
+        <echo>ant [all|usage|compile|jars]</echo>
+    </target>
+
+
+    <target name="all" depends="compile, jars, clean"/>
+
+    <!-- help  target - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <target name="help" depends="usage" description="Prints usage hint"/>
+
+</project>
