@@ -20,7 +20,7 @@ __author__ = Zdenek Maxa
 
 import os
 import sys
-sys.path.append("/usr/lib/python2.4/site-packages")
+sys.path.append("/usr/lib/python2.6/site-packages")
 import re
 import signal
 import logging

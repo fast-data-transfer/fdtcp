@@ -19,29 +19,34 @@
 # should not need any modification if standard locations are used
 
 # shortcut to the Java libraries directory
-JAVA_LIBS=/usr/share/java
+export JAVA_LIBS=/usr/share/java
 
-JAVA_HOME=/usr/java/latest
+export JAVA_HOME=/usr/java/latest
 
 # AuthService, AuthClient Java applications - part of the project
-AUTHSERVICEJAR=$JAVA_LIBS/fdtcp/authservice.jar
-AUTHCLIENTJAR=$JAVA_LIBS/fdtcp/authclient.jar
+export AUTHSERVICEJAR=$JAVA_LIBS/fdtcp/authservice.jar
+export AUTHCLIENTJAR=$JAVA_LIBS/fdtcp/authclient.jar
 
 # jar file of the FDT Java application
-FDTJAR=$JAVA_LIBS/fdt.jar
+export FDTJAR=/home/dynes/fdt.jar
 # Hadoop adapter for FDT Java server side
-FDTHDFSJAR=$JAVA_LIBS/fdt-hdfs.jar
+export FDTHDFSJAR=$JAVA_LIBS/fdt-hdfs.jar
 # Hadoop dependencies of the FDT HDFS adapter (Hadoop 0.20)
-FDTHDFSLIBS=/usr/lib/hadoop/hadoop-core.jar:/usr/lib/hadoop/lib/commons-logging-1.0.4.jar
+export FDTHDFSLIBS=/usr/lib/hadoop/hadoop-core.jar:/usr/lib/hadoop/lib/commons-logging-1.0.4.jar
 
+export TEMP_JAVA_LIBS=$JAVA_LIBS
+export JAVA_LIBS=/home/dynes/OPT/fdtcp/authenticator/
 
 # Grid Authentication Java libraries
-GSILIBS=$JAVA_LIBS/cog-jglobus/cog-jglobus.jar:$JAVA_LIBS/cog-jglobus/puretls.jar:$JAVA_LIBS/cog-jglobus/junit.jar:$JAVA_LIBS/cog-jglobus/cryptix-asn1.jar:$JAVA_LIBS/cog-jglobus/cog-url.jar:$JAVA_LIBS/cog-jglobus/log4j-1.2.13.jar:$JAVA_LIBS/cog-jglobus/commons-logging-1.1.jar:$JAVA_LIBS/cog-jglobus/cog-jobmanager.jar:$JAVA_LIBS/cog-jglobus/jce-jdk13-131.jar:$JAVA_LIBS/cog-jglobus/cryptix32.jar:$JAVA_LIBS/cog-jglobus/cryptix.jar:$JAVA_LIBS/cog-jglobus/jgss.jar
-
+# AuthService, AuthClient Java applications - part of the project
+export AUTHSERVICEJAR=$JAVA_LIBS/authservice.jar
+export AUTHCLIENTJAR=$JAVA_LIBS/authclient.jar
+export GSILIBS=$JAVA_LIBS/cog-jglobus/cog-jglobus.jar:$JAVA_LIBS/cog-jglobus/puretls.jar:$JAVA_LIBS/cog-jglobus/junit.jar:$JAVA_LIBS/cog-jglobus/cryptix-asn1.jar:$JAVA_LIBS/cog-jglobus/cog-url.jar:$JAVA_LIBS/cog-jglobus/log4j-1.2.13.jar:$JAVA_LIBS/cog-jglobus/commons-logging-1.1.jar:$JAVA_LIBS/cog-jglobus/cog-jobmanager.jar:$JAVA_LIBS/cog-jglobus/jce-jdk13-131.jar:$JAVA_LIBS/cog-jglobus/cryptix32.jar:$JAVA_LIBS/cog-jglobus/cryptix.jar:$JAVA_LIBS/cog-jglobus/jgss.jar
+export JAVA_LIBS=$TEMP_JAVA_LIBS
 
 # GSI authentication settings - should be adjusted locally, if necessary,
 # and appropriate ownership set
-X509_CERT_DIR=/etc/grid-security/certificates
-X509_SERVICE_KEY=/etc/grid-security/fdt/fdtkey.pem
-X509_SERVICE_CERT=/etc/grid-security/fdt/fdtcert.pem
-GRIDMAPFILE=/etc/grid-security/grid-mapfile
+export X509_CERT_DIR=/etc/grid-security/certificates
+export X509_SERVICE_KEY=/home/dynes/fdt-caltech.hep.caltech.edu-key.pem
+export X509_SERVICE_CERT=/home/dynes/fdt-caltech.hep.caltech.edu.pem
+export GRIDMAPFILE=/etc/grid-security/grid-mapfile
