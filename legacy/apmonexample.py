@@ -8,7 +8,7 @@ import random
 #apm = apmon.ApMon("http://monalisa2.cern.ch/~catac/apmon/destinations.conf");
 
 # set the destinations as a tuple of strings
-apm = apmon.ApMon(("monalisa2.cern.ch:28884", "monalisa2.caltech.edu:28884"))
+apm = apmon.ApMon(("monalisa.cern.ch:28884", "monalisa.caltech.edu:28884"))
 
 #check for changes in the configuration files
 #apm.configRecheck = True

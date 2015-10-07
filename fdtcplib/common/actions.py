@@ -192,24 +192,29 @@ class ReceivingServerAction(Action):
         # processes .. not very elegant solution, shall be revised
         # once currently very rare #38 problem is understood
         found = False
-        procs = psutil.get_pid_list()
+        procs = psutil.pids()
         logger.debug("Going to check %s processes ..." % len(procs))
         for pid in procs:
             try:
                 proc = psutil.Process(pid)
-                conns = proc.get_connections()
+                conns = proc.connections()
             except psutil.AccessDenied:
                 logger.debug("Access denied to process PID: %s, "
                              "continue ..." % pid)
                 continue
             for conn in conns:
-                connPort = int(conn.local_address[1])
-                if port == connPort:
-                    m = ("Detected: process PID: %s occupies port: %s "
-                         "(user: %s, cmdline: %s)" %
-                         (pid, port, proc.username, proc.cmdline))
-                    logger.debug(m)
-                    found = True
+                # It can have multiple connections, so need to check all
+                try:
+                    connPort = int(conn[0].laddr[1])
+                    if port == connPort:
+                        m = ("Detected: process PID: %s occupies port: %s "
+                             "(user: %s, cmdline: %s)" %
+                             (pid, port, proc.username(), proc.cmdline()))
+                        logger.debug(m)
+                        found = True
+                except AttributeError as er:
+                    logger.debug("Got unnexpected attribute error. %s" % str(conn[0]))
+                    continue
             if found:
                 break
         endTime = datetime.datetime.now()
