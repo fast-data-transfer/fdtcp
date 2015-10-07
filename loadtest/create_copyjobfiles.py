@@ -5,6 +5,7 @@
     cd loadtest
     python create_copyjobfiles.py
 """
+from __future__ import print_function
 
 # number of copyjobfiles
 # number of tests are iterated from 1
@@ -20,12 +21,12 @@ MD5LINE = "fdt://t3-fdt.ultralight.org:8444//mnt/hadoop/user/maxa/transfer_test/
 for i in range(1, NUMTESTS + 1):
     copyJobFileName = "copyjobfile-%03d" % i
     f = open(copyJobFileName, 'w')
-    print "\n\ncreating '%s'" % copyJobFileName
+    print("\n\ncreating '%s'" % copyJobFileName)
     for ii in range(1, NUMFILES + 1):
         t = TEMPLATE % { "numFile": "%02d" % ii, "numTest": "%03d" % i }
-        print t
+        print(t)
         f.write("%s\n" % t)
     t = MD5LINE % { "numTest": "%03d" % i }
-    print t
+    print(t)
     f.write(t)
 f.close()

@@ -10,6 +10,7 @@ cleanup.py
     cd loadtest
     sudo -u uscms1713 python cleanup.py
 """
+from __future__ import print_function
 
 DEST = "/mnt/hadoop/store/user/maxa/fdtcptests/"
 FILES = "/tmp/fdt*"
@@ -20,11 +21,11 @@ NUMTESTS = 10
 import os, shutil
 
 c = "rm -fr %s" % FILES
-print "cleaning files: %s" % c
+print("cleaning files: %s" % c)
 os.system(c)
 
 if os.path.exists(DEST):
-    print "deleting directory tree: %s" % DEST
+    print("deleting directory tree: %s" % DEST)
     shutil.rmtree(DEST)
     os.mkdir(DEST)
     
@@ -38,4 +39,4 @@ if os.path.exists(DEST):
     #    os.mkdir(path)
     #os.system("ls -R %s" % DEST)
 else:
-    print "directory '%s', nothing done" % DEST 
+    print("directory '%s', nothing done" % DEST) 

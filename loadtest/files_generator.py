@@ -2,6 +2,7 @@
 Generate data files used in transfer tests.
 
 """
+from __future__ import print_function
 
 import os
 
@@ -31,6 +32,6 @@ _commands = [_command % {"sizeGB": sizeGB, "counter": "%.2i" % (i + 1),
 #print "commands:\n", _commands
 
 for comm in _commands:
-    print "executing command: %s" % comm
+    print("executing command: %s" % comm)
     r = os.system(comm)
-    print "result: %s\n" % r
+    print("result: %s\n" % r)

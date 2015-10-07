@@ -83,7 +83,7 @@ class Config(object):
                     self._options[name] = value
                     
                 # to some strings types processing ...
-                if isinstance(self.get(name), types.StringType):
+                if isinstance(self.get(name), bytes):
                     #convert 'True', 'False' strings to bool values
                     # True, False
                     if value.lower() == 'true':
@@ -96,13 +96,13 @@ class Config(object):
                 # have to check type because among self._mandatoryStr may be
                 # boolean types ...
                 r = self.get(name)
-                if isinstance(r, types.StringType):
+                if isinstance(r, bytes):
                     if r[0] in ("'", '"'):
                         r = r[1:]
                     if r[-1] in ("'", '"'):
                         r = r[:-1]
                     self._options[name] = r
-        except Exception, ex:            
+        except Exception as ex:            
             m = "Error while parsing %s, reason %s" % (fileName, ex)
             raise ConfigurationException(m)
         
@@ -139,7 +139,7 @@ class Config(object):
     def processCommandLineOptions(self, args):
         m = ("processCommandLineOptions() not implemented, Config must be "
              "subclassed.")
-        raise NotImplementedError, m
+        raise NotImplementedError(m)
 
 
     def get(self, what):        

@@ -16,6 +16,7 @@ FDT Java instances are created as new processes rather than threads which
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -29,38 +30,33 @@ import threading
 import datetime
 import resource
 from threading import Lock
-try:
-    # force loading fdtcplib.__init__.py (see comment in this file related
-    # to PYRO_STORAGE env. variable setting) - must be before first
-    # PYRO import
-    import fdtcplib
-    from ApMon import apmon
-    from M2Crypto import SSL # just test dependencies
-    from psutil import Process
-    from psutil import NoSuchProcess
-    import Pyro
-    import Pyro.core
-    from Pyro.errors import PyroError
-    from fdtcplib.utils.Executor import Executor
-    from fdtcplib.utils.Executor import ExecutorException
-    from fdtcplib.utils.Config import Config
-    from fdtcplib.utils.Logger import Logger
-    from fdtcplib.utils.utils import getHostName
-    from fdtcplib.utils.utils import getOpenFilesList
-    from fdtcplib.common.actions import Result
-    from fdtcplib.common.errors import ServiceShutdownBySignal
-    from fdtcplib.common.errors import FDTDException
-    from fdtcplib.common.errors import AuthServiceException
-    from fdtcplib.common.errors import PortReservationException
-    from fdtcplib.common.errors import TimeoutException
-    from fdtcplib.utils.Config import ConfigurationException
-    from fdtcplib.common.actions import CleanupProcessesAction
-    from fdtcplib.common.actions import ReceivingServerAction
-    from fdtcplib.common.actions import SendingClientAction  
-except ImportError, ex:
-    print "Can't import dependency modules: %s" % ex
-    sys.exit(1)
-
+# force loading fdtcplib.__init__.py (see comment in this file related
+# to PYRO_STORAGE env. variable setting) - must be before first
+# PYRO import
+import fdtcplib
+from ApMon import apmon
+from M2Crypto import SSL # just test dependencies
+from psutil import Process
+from psutil import NoSuchProcess
+import Pyro
+import Pyro.core
+from Pyro.errors import PyroError
+from fdtcplib.utils.Executor import Executor
+from fdtcplib.utils.Executor import ExecutorException
+from fdtcplib.utils.Config import Config
+from fdtcplib.utils.Logger import Logger
+from fdtcplib.utils.utils import getHostName
+from fdtcplib.utils.utils import getOpenFilesList
+from fdtcplib.common.actions import Result
+from fdtcplib.common.errors import ServiceShutdownBySignal
+from fdtcplib.common.errors import FDTDException
+from fdtcplib.common.errors import AuthServiceException
+from fdtcplib.common.errors import PortReservationException
+from fdtcplib.common.errors import TimeoutException
+from fdtcplib.utils.Config import ConfigurationException
+from fdtcplib.common.actions import CleanupProcessesAction
+from fdtcplib.common.actions import ReceivingServerAction
+from fdtcplib.common.actions import SendingClientAction  
 
 
 class PortReservation(object):
@@ -283,7 +279,7 @@ class FDTD(object):
         try:
             portRangeStr = self.conf.get("portRangeFDTServer")
             portMin, portMax = [int(i) for i in portRangeStr.split(',')]
-        except (ValueError, IndexError), ex:
+        except (ValueError, IndexError) as ex:
             raise FDTDException("Incorrect format of port range definition: "
                                 "'%s', reason: %s" % (portRangeStr, ex))
         # range of all possible ports reserved for FDT Java
@@ -298,7 +294,7 @@ class FDTD(object):
         
         try:
             port = int(self.conf.get("port"))
-        except (ValueError, TypeError), ex:
+        except (ValueError, TypeError) as ex:
             raise FDTDException("Can't start %s, wrong port, reason: %s" %
                                 (self._name, ex))
                 
@@ -329,7 +325,7 @@ class FDTD(object):
             self.pyroDaemon = Pyro.core.Daemon(host=host,
                                                port=port,
                                                norange=1)
-        except PyroError, ex:
+        except PyroError as ex:
             m = ("PYRO service could not start (port:%s), reason: %s" %
                  (port, ex))
             raise FDTDException(m)
@@ -418,7 +414,7 @@ class FDTD(object):
             if e.port:
                 try:
                     self.releasePort(e.port)
-                except PortReservationException, exx:
+                except PortReservationException as exx:
                     m = "Port release failed, reason: %s" % exx
                     if e.logger is not self.logger:
                         self.logger.critical(m)
@@ -553,7 +549,7 @@ class FDTD(object):
                                 blocking=True,
                                 logger=logger)
             output = killExec.execute()
-        except ExecutorException, ex:
+        except ExecutorException as ex:
             m = ("Error when killing process PID: %s (kill process: %s), "
                  "reason: %s\nlogs from the killed-attempt process:\n%s" %
                  (e.proc.pid, killExec, ex, e.getLogs()))
@@ -569,7 +565,7 @@ class FDTD(object):
             # # check #8 description
             try:
                 code = e.proc.wait()
-            except OSError, ex:
+            except OSError as ex:
                 logger.error("Could not retrieve the returncode, "
                              "reason: %s" % ex)
                 code = "unknown: %s" % ex
@@ -577,7 +573,7 @@ class FDTD(object):
             logger.debug("Checking that process was killed ...")
             try:
                 p = Process(e.proc.pid)
-            except NoSuchProcess, ex:
+            except NoSuchProcess as ex:
                 logger.debug("Process PID: %s doesn't exist now." %
                              e.proc.pid)
             else:
@@ -617,7 +613,7 @@ class FDTD(object):
                 e = self._executors[id]
                 if (e.logger is not self.logger) and e.logger.isOpen:
                     loggersToClose.append(e.logger)
-        except FDTDException, ex:
+        except FDTDException as ex:
             self.logger.error(ex)
         self._executorsLock.release()
         
@@ -853,7 +849,7 @@ class AuthService(object):
         try:
             output = self.executor.execute()
             self.logger.debug(output)
-        except ExecutorException, ex:
+        except ExecutorException as ex:
             m = "Could not start AuthService, reason: %s" % ex
             raise AuthServiceException(m)
 
@@ -897,7 +893,7 @@ def daemonize(conf, logger):
     try:
         pidFileDesc = open(pidFile, 'w')
         pidFileDesc.close()
-    except IOError, ex:
+    except IOError as ex:
         logger.fatal("Can't access PID file '%s', reason: %s" %
                      (pidFile, ex))
         logger.close()
@@ -983,24 +979,24 @@ def startApplication(conf, logger):
             daemon = FDTD(conf, apMon, logger)
             authService = AuthService(daemon, conf, logger)
             daemon.start()
-        except AuthServiceException, ex:
+        except AuthServiceException as ex:
             logger.fatal("Exception during AuthService startup, "
                          "reason: %s" % ex)
-        except (FDTDException, ), ex:
+        except (FDTDException, ) as ex:
             logger.fatal("Exception during FDTD initialization, "
                          "reason: %s" % ex)
         except KeyboardInterrupt:
             logger.fatal("Interrupted from keyboard ...")
-        except ServiceShutdownBySignal, ex:
+        except ServiceShutdownBySignal as ex:
             logger.fatal(ex)
-        except Exception, ex:
+        except Exception as ex:
             logger.fatal("Exception was caught ('%s'), reason: %s" %
                          (ex.__class__.__name__, ex), traceBack=True)
     finally:
         if daemon:
             try:
                 daemon.shutdown()
-            except Exception, exx:
+            except Exception as exx:
                 logger.fatal("Exception occurred during shutdown sequence, "
                              "reason: %s" % exx, traceBack=True)
         try:
@@ -1016,10 +1012,10 @@ def startApplication(conf, logger):
                 try:
                     os.remove(pidFile)
                     logger.debug("File '%s' removed." % pidFile)
-                except OSError, ex:
+                except OSError as ex:
                     logger.error("Could not remove PID file '%s', "
                                  "reason: %s" % (pidFile, ex))
-        except Exception, exx:
+        except Exception as exx:
             logger.fatal("Exception occurred during shutdown-cleanup, "
                          "reason: %s" % exx, traceBack=True)
         logger.close()
@@ -1031,8 +1027,8 @@ def main():
     try:
         conf = ConfigFDTD(sys.argv[1:])
         conf.sanitize()
-    except ConfigurationException, ex:
-        print "fdtd failed to start, reason: %s" % ex
+    except ConfigurationException as ex:
+        print("fdtd failed to start, reason: %s" % ex)
         sys.exit(1)
             
     logger = Logger(name="fdtd",

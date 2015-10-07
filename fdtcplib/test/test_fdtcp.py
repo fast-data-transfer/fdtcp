@@ -4,6 +4,7 @@ py.test unittest testsuite for fdtcp
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -33,19 +34,19 @@ def testTransferInstanceAttributesAccess():
     
     """
     transfer = Transfer(None, None, None)
-    print transfer.id
-    print transfer.hostSrc
-    print transfer.hostDest
-    print transfer.sender
-    print transfer.receiver
-    print transfer.files
-    print transfer.log
-    print transfer.result
-    print transfer.toCleanup
-    print transfer.logger
-    print transfer.conf
-    print transfer.portSrc
-    print transfer.portDest
+    print(transfer.id)
+    print(transfer.hostSrc)
+    print(transfer.hostDest)
+    print(transfer.sender)
+    print(transfer.receiver)
+    print(transfer.files)
+    print(transfer.log)
+    print(transfer.result)
+    print(transfer.toCleanup)
+    print(transfer.logger)
+    print(transfer.conf)
+    print(transfer.portSrc)
+    print(transfer.portDest)
 
 
 def testConfigRetrievingValues():
@@ -83,7 +84,7 @@ fdt://host1:123/tmp/file fdt://host2:124//tmp/file1 -d DEBUG -t 3
 -r /tmp/report fdt://host1:123/tmp/file fdt://host2:123/tmp/file1 -d DEBUG -t 3"""
     for i in inputOptions.split('\n'):
         ops = i.strip()
-        print "command line options: %s" % ops
+        print("command line options: %s" % ops)
         conf = ConfigFDTCopy(ops.split())
         conf.sanitize()
         
@@ -152,7 +153,7 @@ fdt://host2:14124x/tmp/file3 fdt://host6:124/tmp/fileX
     logger = Logger("test logger",  level=logging.DEBUG)
     for line in data.split('\n'):
         copyJobFile = tempfile.NamedTemporaryFile("w+") # read / write
-        print "copyjobfile contains: '%s'" % line
+        print("copyjobfile contains: '%s'" % line)
         copyJobFile.write(line)
         copyJobFile.flush()
         copyJobFile.seek(0)

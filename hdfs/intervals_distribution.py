@@ -17,6 +17,7 @@ AlreadyBeingCreated-timestamps - just timestamps extracted
     for occurrence dependency study it should be approximately enough.
 
 """
+from __future__ import print_function
     
 
 import time
@@ -101,9 +102,9 @@ for dt in open("AlreadyBeingCreated-timestamps", 'r'):
             #print ("%s falls into %s (occup:%s)" % (delta, pd.x[i], pd.y[i]))
             break
     else:
-        print "not binned: %s %s" % (delta, deltaMin)
+        print("not binned: %s %s" % (delta, deltaMin))
 
-print pd.y
+print(pd.y)
 t = 0
 for c in pd.y:
     t += c
@@ -118,9 +119,9 @@ for i in range(len(pd.y)):
         toPlotX.append(pd.x[i])
         toPlotY.append(pd.y[i])
 
-print "###### to plot:"
-print toPlotX
-print toPlotY
+print("###### to plot:")
+print(toPlotX)
+print(toPlotY)
 
 pylab.setp(pylab.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
 pylab.plot(toPlotX, toPlotY, 'rs')

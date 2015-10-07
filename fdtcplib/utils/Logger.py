@@ -32,7 +32,7 @@ class Logger(logging.getLoggerClass()):
         self.myName = name
         self.myLogFile = logFile
         
-        if type(level) is not types.IntType:
+        if type(level) is not int:
             m = ("Wrong level '%s' option. Must be integer constant from "
                  "logging module." % level)
             raise Exception(m)

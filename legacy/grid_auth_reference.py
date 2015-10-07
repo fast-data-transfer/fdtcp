@@ -1,3 +1,4 @@
+from __future__ import print_function
 # code saved for future reference
 # code taken from COMP stuff within CMSSW
 # esp. grid - authentication stuff
@@ -60,7 +61,7 @@ def executeCommand( command, timeout=None ):
             os.kill( p.pid, signal.SIGKILL)
             p.wait()
             p.stdout.close()
-        except OSError, err :
+        except OSError as err :
             logging.warning(
                 'Warning: an error occurred killing subprocess [%s]' \
                 % str(err) )
@@ -71,7 +72,7 @@ def executeCommand( command, timeout=None ):
     try:
         p.wait()
         p.stdout.close()
-    except OSError, err:
+    except OSError as err:
         logging.warning( 'Warning: an error occurred closing subprocess [%s] %s  %s' \
                          % (str(err), ''.join(outc), p.returncode ))
 
@@ -127,7 +128,7 @@ class Proxy:
         """
         """
         proxy = None
-        if os.environ.has_key('X509_USER_PROXY'):
+        if 'X509_USER_PROXY' in os.environ:
             proxy = os.environ['X509_USER_PROXY']
         else:
             proxy = '/tmp/x509up_u'+str(os.getuid())
@@ -345,7 +346,7 @@ class Proxy:
             try:
                 hours, minutes, seconds = timeleftList[0]
                 timeleft = int(hours)*3600 + int(minutes)*60 + int(seconds)
-            except Exception, e:
+            except Exception as e:
                 self.logging.info('Error extracting timeleft from proxy')
                 self.logging.debug( str(e) )
                 valid = False
@@ -369,7 +370,7 @@ class Proxy:
                 try:
                     hours, minutes, seconds = credTimeleftList[ credNameList.index(serverCredName) ]
                     timeleft = int(hours)*3600 + int(minutes)*60 + int(seconds)
-                except Exception, e:
+                except Exception as e:
                     self.logging.info('Error extracting timeleft from credential name')
                     self.logging.debug( str(e) )
                     valid = False
@@ -624,7 +625,7 @@ class GridMapChecker(object):
         
         # openssl x509 -in '+proxy+' -subject -noout
         
-        if not self.gridMap.has_key(subject):
+        if subject not in self.gridMap:
             #form Subject DNs by removing the last CN field in the
             #subject, continue this until subject name matches or 
             #there are no more CN fields
@@ -634,7 +635,7 @@ class GridMapChecker(object):
                 subject_name_list.pop(0)
                 new_subject_list = map(lambda x: "/" +x,subject_name_list)
                 subject = "".join(new_subject_list)
-                if self.gridMap.has_key(subject):
+                if subject in self.gridMap:
                     break
                 try:
                     subject.index("CN")
@@ -714,14 +715,14 @@ def gridLocalUserMapping():
     proxy = Proxy() # create an empty one
     # calls external openssl program ...
     subject = proxy.getSubject(userGridProxy)
-    print "proxy subject: '%s'" % subject
+    print("proxy subject: '%s'" % subject)
     localUser = checker.requestLocalId(subject)
-    print "local user: '%s'" % localUser
+    print("local user: '%s'" % localUser)
     
-    print "\n\n\n"
+    print("\n\n\n")
     from M2Crypto.X509 import load_cert
     cert = load_cert("pyro-ssl-example/certs/server.crt")
-    print "subject read by M2Crypto: '%s'" % cert.get_subject()
+    print("subject read by M2Crypto: '%s'" % cert.get_subject())
     
     cert = load_cert(userGridProxy)
-    print "subject read by M2Crypto: '%s'" % cert.get_subject()
+    print("subject read by M2Crypto: '%s'" % cert.get_subject())

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # example for testing / setting up ApMon MonALISA monitoring
 
 from ApMon import apmon
@@ -14,14 +15,14 @@ apm = apmon.ApMon(("monalisa.cern.ch:28884", "monalisa.caltech.edu:28884"))
 #apm.configRecheck = True
 #apm.configRecheckInterval = 10 # (time in seconds)
 
-print "ApmTest: Destinations:", apm.destinations
+print("ApmTest: Destinations:", apm.destinations)
 
 # what happens if hostname is not specified? - puts just 'localhost'
 
 
 transferId = "some_id"
 
-print "sending stuff ..."
+print("sending stuff ...")
 
 for i in range(20):
     par = dict(id = transferId, initialisation = random.randint(10, 30))
@@ -34,17 +35,17 @@ for i in range(20):
     apm.sendParameters("fdtcp", None, par)
     time.sleep(0.05)
     
-print "fdtcp stuff sent"
+print("fdtcp stuff sent")
 
 for i in range(20):
     par = dict(id = transferId, fdt_server_init = random.randint(10, 30))
     apm.sendParameters("fdtd_server_writer", None, par)
     time.sleep(0.05)
     
-print "fdtd_server_writer stuff sent"
+print("fdtd_server_writer stuff sent")
 
 
-print "ApmTest: Done."
+print("ApmTest: Done.")
 apm.free()    
 
 

@@ -74,7 +74,7 @@ class FDTService(object):
         """
         try:
             port = self._getFreePort()
-        except PortReservationException, ex:
+        except PortReservationException as ex:
             self.logger.error("Can't start service, reason: %s" % ex)
             return     
             
@@ -94,12 +94,12 @@ class FDTService(object):
             self.logger.debug("-- service() %s" % (20 * '1'))
             logs = executor.execute()
             self.logger.debug("-- service() %s" % (20 * '2'))
-        except ExecutorException, ex: 
+        except ExecutorException as ex: 
             # logs should be present in the exception
             self.logger.debug("-- service() %s" % (20 * '4'))
             self._releasePort(port) 
             self.logger.error("Can't start service, reason: %s" % ex)
-        except Exception, ex:
+        except Exception as ex:
             self.logger.debug("-- service() %s" % (20 * '5'))
             self._releasePort(port)
             self.logger.error("Unknown exception occurred, reason: %s" %
@@ -154,7 +154,7 @@ class FDTService(object):
         
         try:
             logs = killExecutor.execute()
-        except ExecutorException, ex:
+        except ExecutorException as ex:
             self.logger.error("Could not kill %s, reason: %s" %
                               (executor, ex))
         else:

@@ -4,6 +4,7 @@ py.test unittest testsuite for ConfigFDTCopy.
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -117,5 +118,5 @@ debug = DEBU
         f = getTempFile(c)
         inputOption = "--config=%s" % f.name
         conf = ConfigFDTD(inputOption.split())
-        print "testing config: '%s'" % c
+        print("testing config: '%s'" % c)
         py.test.raises(ConfigurationException, conf.sanitize)

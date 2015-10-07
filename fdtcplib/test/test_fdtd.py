@@ -11,6 +11,7 @@ in use' error.
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -196,7 +197,7 @@ portRangeFDTServer = 54321,54400
              "killed." % executor.proc.pid) 
         logger.debug(m)
         py.test.fail(m)
-    except NoSuchProcess, ex:
+    except NoSuchProcess as ex:
         logger.debug("OK: Process PID:%s doesn't exist now." %
                      executor.proc.pid)
 
@@ -444,7 +445,7 @@ portRangeFDTServer = 54321,54400
         handler = Handler(False, testName)
         signal.signal(signal.SIGALRM, handler.signalHandler)
         assert handler.flag == False
-        print "test %s is waiting here ..." % testName
+        print("test %s is waiting here ..." % testName)
         signal.alarm(1) # raise alarm in timeout seconds
         cl.execute(conf=conf, caller=fdtd, apMon=None, logger=logger)
         signal.alarm(0) # disable alarm
@@ -596,14 +597,14 @@ def testFDTDServiceOpenFiles():
                    destFiles=[])    
     recvServerAction = ReceivingServerAction(testAction.id, options)
     r = fdtd.service.service(recvServerAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     numOpenFilesNow = len(proc.get_open_files())
     # there should be only 1 extra opened file now
     assert initStateNumOpenFiles == numOpenFilesNow - 1
     cleanupAction = CleanupProcessesAction(serverId, timeout=2)
     r = fdtd.service.service(cleanupAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     numOpenFilesNow = len(proc.get_open_files())
     assert initStateNumOpenFiles == numOpenFilesNow
@@ -654,7 +655,7 @@ def testAddressAlreadyInUseRoundRobinPortReservation():
     recvServerAction = ReceivingServerAction(testAction.id, options)
     # do ReceivingServerAction - start FDT Java server
     r = fdtd.service.service(recvServerAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     assert r.serverPort == 54321
     cleanupAction = CleanupProcessesAction(serverId,
@@ -663,11 +664,11 @@ def testAddressAlreadyInUseRoundRobinPortReservation():
     # do CleanupProcessesAction - shut FDT Java server, port shall be
     # released
     r = fdtd.service.service(cleanupAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     # do another ReceivingServerAction - start FDT Java server
     r = fdtd.service.service(recvServerAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     # will not get the same port, but the next one in the range
     assert r.serverPort == 54322
@@ -777,7 +778,7 @@ def testFDTDServiceOpenFilesFullTransfer():
                    destFiles=["/dev/null"])    
     recvServerAction = ReceivingServerAction(testActionServer.id, options)
     r = fdtdServer.service.service(recvServerAction)
-    print r.msg
+    print(r.msg)
     assert r.status == 0
     serverFDTPort = r.serverPort
     
@@ -812,7 +813,7 @@ def testFDTDServiceOpenFilesFullTransfer():
     # parties kept their separate log files open, CleanupProcessesAction
     # will close them
         
-    print "going to clean up"
+    print("going to clean up")
     cl = CleanupProcessesAction(testActionReader.id, waitTimeout=False)
     r = fdtdReader.service.service(cl)
     assert r.status == 0

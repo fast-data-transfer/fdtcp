@@ -50,12 +50,12 @@ class CarrierBase(object):
         r = ""
         ind = ' ' * indent
         for k, v in inputDict.items():
-            if isinstance(v, types.DictType):
+            if isinstance(v, dict):
                 # do indent twice as much
                 recurResult = self._debugDetails(v, indent=8)
                 dictInfo = "'%s' (dict, %s items):\n" % (k, len(v))
                 r = "".join([r, ind, dictInfo, recurResult])
-            elif isinstance(v, types.ListType):
+            elif isinstance(v, list):
                 listInfo = "'%s' (list, %s items):\n" % (k, len(v))
                 r = "".join([r, ind, listInfo])
                 for i in v:
@@ -83,7 +83,7 @@ class Action(CarrierBase):
         
     def execute(self):
         m = "Base class (abstract), no implementation execute()"
-        raise NotImplementedError, m
+        raise NotImplementedError(m)
     
         
 
@@ -258,7 +258,7 @@ class ReceivingServerAction(Action):
         # on errors, do not do any cleanup or port releasing, from
         # Executor.execute() the instance is in the container and shall
         # be handled by CleanupProcessesAction
-        except Exception, ex:
+        except Exception as ex:
             m = ("Could not start FDT server on %s port: %s, reason: %s" %
                  (getHostName(), port, ex))
             logger.critical(m, traceBack = True)
@@ -332,7 +332,7 @@ class SendingClientAction(Action):
             if not os.path.exists(dir):
                 os.mkdir(dir)
             fileList = open(fileListName, 'w')
-        except IOError, ex:
+        except IOError as ex:
             m = ("Could not create FDT client fileList file %s, "
                  "reason: %s" % (fileListName, ex))
             raise FDTDException(m) # this will be propagated to fdtcp
@@ -374,12 +374,12 @@ class SendingClientAction(Action):
         try:
             try:
                 output = executor.execute()
-            except ExecutorException, ex:
+            except ExecutorException as ex:
                 m = ("FDT Java client on %s failed, "
                      "reason: %s" % (getHostName(), ex))
                 logger.error(m)
                 raise FDTDException(m)
-            except Exception, ex:
+            except Exception as ex:
                 m = ("FDT Java client on %s failed, "
                      "reason: %s" % (getHostName(), ex))
                 logger.error(m, traceBack=True)
@@ -444,7 +444,7 @@ class AuthClientAction(Action):
         try:
             remoteGridUser = open(fileName, 'r').read()
             os.remove(fileName)
-        except Exception, ex:
+        except Exception as ex:
             m = ("Problem handling file %s (reading remote Grid user "
                  "name), reason: %s" % (fileName, ex))
             raise FDTCopyException(m)

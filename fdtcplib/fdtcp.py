@@ -45,6 +45,7 @@ Report file (--report) is required by PhEDEx. PhEDEx itself makes its own
 Author: Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -58,37 +59,32 @@ import logging
 import socket
 import re
 import datetime
-try:
-    # force loading fdtcplib.__init__.py (see comment in this file related
-    # to PYRO_STORAGE env. variable setting) - must be before first
-    # PYRO import
-    import fdtcplib
-    from ApMon import apmon
-    import Pyro
-    import Pyro.core
-    from Pyro.errors import PyroError
-    from Pyro.errors import ProtocolError
-    from Pyro.errors import URIError
-    from Pyro.errors import ConnectionClosedError
-    from fdtcplib.utils.Executor import ExecutorException
-    from fdtcplib.utils.Config import Config
-    from fdtcplib.utils.Logger import Logger
-    from fdtcplib.common.actions import TestAction
-    from fdtcplib.common.actions import ReceivingServerAction
-    from fdtcplib.common.actions import SendingClientAction
-    from fdtcplib.common.actions import CleanupProcessesAction
-    from fdtcplib.common.actions import AuthServiceAction
-    from fdtcplib.common.actions import AuthClientAction
-    from fdtcplib.common.actions import Result
-    from fdtcplib.common.TransferFile import TransferFile
-    from fdtcplib.common.errors import FDTDException, TimeoutException
-    from fdtcplib.common.errors import FDTCopyException
-    from fdtcplib.common.errors import FDTCopyShutdownBySignal
-    from fdtcplib.utils.Config import ConfigurationException
-except ImportError, ex:
-    print "Can't import dependency modules: %s" % ex
-    sys.exit(1)
-
+# force loading fdtcplib.__init__.py (see comment in this file related
+# to PYRO_STORAGE env. variable setting) - must be before first
+# PYRO import
+import fdtcplib
+from ApMon import apmon
+import Pyro
+import Pyro.core
+from Pyro.errors import PyroError
+from Pyro.errors import ProtocolError
+from Pyro.errors import URIError
+from Pyro.errors import ConnectionClosedError
+from fdtcplib.utils.Executor import ExecutorException
+from fdtcplib.utils.Config import Config
+from fdtcplib.utils.Logger import Logger
+from fdtcplib.common.actions import TestAction
+from fdtcplib.common.actions import ReceivingServerAction
+from fdtcplib.common.actions import SendingClientAction
+from fdtcplib.common.actions import CleanupProcessesAction
+from fdtcplib.common.actions import AuthServiceAction
+from fdtcplib.common.actions import AuthClientAction
+from fdtcplib.common.actions import Result
+from fdtcplib.common.TransferFile import TransferFile
+from fdtcplib.common.errors import FDTDException, TimeoutException
+from fdtcplib.common.errors import FDTCopyException
+from fdtcplib.common.errors import FDTCopyShutdownBySignal
+from fdtcplib.utils.Config import ConfigurationException
 
  
 class FDTCopy(object):
@@ -105,7 +101,7 @@ class FDTCopy(object):
         try:
             Pyro.core.initClient()
             self.proxy = Pyro.core.getProxyForURI(self.uri)
-        except (AttributeError, URIError), ex:
+        except (AttributeError, URIError) as ex:
             m = ("Incorrect URI '%s', could not create PYRO proxy for "
                  "FDTD service." % self.uri)
             raise FDTCopyException(m)
@@ -144,22 +140,22 @@ class FDTCopy(object):
                 result = self.proxy.service(action)
             finally:
                 signal.alarm(0) # disable alarm
-        except TimeoutException, ex:
+        except TimeoutException as ex:
             m = ("Call to remote PYRO FDTD service timed-out (remote "
                  "service down, firewall, or ? ...).")
             raise FDTCopyException(m)
         # ProtocolError first, before PyroError
-        except ProtocolError, ex:
+        except ProtocolError as ex:
             m = "ProtocolError during remote PYRO call, reason: %s" % ex
             self.logger.error("PYRO call traceback: %s" %
                               ''.join(Pyro.util.getPyroTraceback(ex)))
             raise FDTCopyException(m)        
-        except PyroError, ex:
+        except PyroError as ex:
             self.logger.error("PYRO call traceback: %s" %
                               ''.join(Pyro.util.getPyroTraceback(ex)))
             m = "PyroError during remote PYRO call, reason: %s" % ex
             raise FDTCopyException(m)
-        except ConnectionClosedError, ex:
+        except ConnectionClosedError as ex:
             m = "Connection with remote PYRO service lost, try again."
             raise FDTCopyException(m)
         else:
@@ -247,7 +243,7 @@ class Transfer(object):
         try:
              self.sender = FDTCopy(uriSrc, self.logger)
              self.receiver = FDTCopy(uriDest, self.logger)
-        except FDTCopyException, ex:
+        except FDTCopyException as ex:
             m = "Transfer %s failed, reason: %s" % (self, ex)
             self.logger.error(m)
             self.log = m
@@ -464,13 +460,13 @@ class Transfer(object):
             fdtCopy = FDTCopy(uri, self.logger)
             try:
                 fdtCopy.perform(cl)
-            except FDTCopyException, ex:
+            except FDTCopyException as ex:
                 self.logger.error("During clean up: %s" % ex)
             # TODO
             # have to be specific about exceptions here, shall exhaust the
             # whole list though likely FDTDException may happen here and is
             # translated into FDTCopyException above
-            except Exception, ex:
+            except Exception as ex:
                 self.logger.error("Unspecified exception during clean "
                                   "up: %s" % ex)
             fdtCopy.proxy._release()
@@ -558,7 +554,7 @@ class Transfers(object):
         fileName = conf.get("copyjobfile")
         try:
             lines = open(fileName, 'r').readlines()
-        except IOError, ex:
+        except IOError as ex:
             raise FDTCopyException("Can't read '%s', reason: %s" %
                                    (fileName, ex))
         
@@ -572,7 +568,7 @@ class Transfers(object):
                 if len(self.transfers) == 0:
                     raise FDTCopyException("No transfer requests found "
                                            "in '%s'" % fileName)
-        except IndexError, ex:
+        except IndexError as ex:
             # count lines from 1 for user-friendly error message
             lineNum = index + 1
             m = ("Can't parse file '%s', line: '%s' line number: %s, "
@@ -664,7 +660,7 @@ class ConfigFDTCopy(Config):
             try:
                 opts.urlSrc = args[-2]
                 opts.urlDest = args[-1]
-            except IndexError, ex:
+            except IndexError as ex:
                 self._parser.print_help()
                 m = "Incorrect command line options, see --help" 
                 raise ConfigurationException(m)
@@ -712,8 +708,8 @@ def main():
     try:
         conf = ConfigFDTCopy(sys.argv[1:])
         conf.sanitize()
-    except ConfigurationException, ex:
-        print "fdtcp failed to start, reason: %s" % ex
+    except ConfigurationException as ex:
+        print("fdtcp failed to start, reason: %s" % ex)
         sys.exit(1)
     
     logger = Logger(name="fdtcp",
@@ -749,7 +745,7 @@ def main():
     
     try:
         transfers = Transfers(conf, apMon, logger)
-    except FDTCopyException, ex:
+    except FDTCopyException as ex:
         logger.fatal(ex)
         # everything failed - all transfers
         if conf.get("report"):
@@ -772,12 +768,12 @@ def main():
             try:
                 transfer.performTransfer()
                 transfer.result = 0
-            except FDTCopyException, ex:
+            except FDTCopyException as ex:
                 logger.error("Transfer failed, reason: %s" % ex)
                 transfer.result = 1
                 transfer.log = ex
                 appExitStatus = 1
-            except ExecutorException, ex:
+            except ExecutorException as ex:
                 # TODO
                 # this type of exception is too low-level, should be
                 # wrapped on an upper level
@@ -785,7 +781,7 @@ def main():
                 transfer.result = 1
                 transfer.log = ex
                 appExitStatus = 1                
-            except FDTDException, ex:
+            except FDTDException as ex:
                 # TODO
                 # this may (most likely) only be raised from authChain
                 # from Executor which needs to be made more general and not
@@ -794,7 +790,7 @@ def main():
                 transfer.result = 1
                 transfer.log = ex
                 appExitStatus = 1                
-            except Exception, ex:
+            except Exception as ex:
                 m = ("Exception was caught ('%s'), reason: %s" %
                      (ex.__class__.__name__, ex))
                 logger.error(m)
@@ -821,7 +817,7 @@ def main():
                     # fdtd wait timeout period until the processes may
                     # finish on their own
                     transfer.performCleanup(waitTimeout=False)
-                except Exception, ex:
+                except Exception as ex:
                     logger.error("Exception during cleanup, reason: %s" % ex)
                 # check if the actual FDTCopy attribute exists - might
                 # have failed while creating it

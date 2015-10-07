@@ -159,7 +159,7 @@ class Executor(object):
         # check #8 description
         try:
             self.returncode = self.proc.wait()
-        except OSError, ex:
+        except OSError as ex:
             self.logger.error("Waiting for process to complete failed "
                               "(crashed/killed?), reason: %s" % ex)
             self.returncode = str(ex)
@@ -205,7 +205,7 @@ class Executor(object):
                                                   self.proc.pid))
                 break
             self.returncode = self.proc.poll()
-            if self.returncode > -sys.maxint:
+            if self.returncode > -sys.maxsize:
                 self.logger.debug("Checked process (PID: %s) likely "
                                   "failed." % self.proc.pid)
                 break
@@ -298,7 +298,7 @@ class Executor(object):
         try:
             self.proc = subprocess.Popen(self.command.split(), **logsConf)
         # python 2.4.3 subprocess doesn't have subprocess.CalledProcessError            
-        except OSError, ex:
+        except OSError as ex:
             # logs should be available
             logs = self.getLogs()
             m = ("Command '%s' failed, reason: "

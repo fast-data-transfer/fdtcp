@@ -4,6 +4,7 @@ py.test unittest testsuite for the Executor module.
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -98,15 +99,15 @@ def testExecutorBlocking():
                  caller=MockCaller())
     logs = e.execute()
     # test __str__ method
-    print "running '%s'" % e
-    print "logs:%s" % logs
+    print("running '%s'" % e)
+    print("logs:%s" % logs)
     s = e.getLogs()
     
     e = Executor("some_id", command, blocking=True, caller=None)
     logs = e.execute()
     # test __str__ method
-    print "running '%s'" % e
-    print "logs:%s" % logs
+    print("running '%s'" % e)
+    print("logs:%s" % logs)
     s = e.getLogs()
     
 

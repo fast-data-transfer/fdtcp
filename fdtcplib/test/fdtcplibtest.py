@@ -7,6 +7,7 @@ the the whole transfer starting from fdtcp.
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -115,7 +116,7 @@ def _fdtd_startApplication(conf, logger):
     try:
         pidFileDesc = open(pidFile, 'w')
         pidFileDesc.close()
-    except IOError, ex:
+    except IOError as ex:
         logger.fatal("Can't access PID file '%s', reason: %s" %
                      (pidFile, ex))
         logger.close()
@@ -162,24 +163,24 @@ def _fdtd_startApplication(conf, logger):
         try:
             daemon = FDTD(conf, apMon, logger)
             daemon.start()
-        except AuthServiceException, ex:
+        except AuthServiceException as ex:
             logger.fatal("Exception during AuthService startup, "
                          "reason: %s" % ex)
-        except (FDTDException, ), ex:
+        except (FDTDException, ) as ex:
             logger.fatal("Exception during FDTD initialization, "
                          "reason: %s" % ex)
         except KeyboardInterrupt:
             logger.fatal("Interrupted from keyboard ...")
         except ServiceShutdownBySignal:
             logger.fatal("Shutdown exception signal received.")
-        except Exception, ex:
+        except Exception as ex:
             logger.fatal("Exception was caught ('%s'), reason: %s"
                           % (ex.__class__.__name__, ex), traceBack=True)
     finally:
         if daemon:
             try:
                 daemon.shutdown()
-            except Exception, exx:
+            except Exception as exx:
                 logger.fatal("Exception occurred during shutdown sequence, "
                              "reason: %s" % exx, traceBack=True)
                 
@@ -200,7 +201,7 @@ def _fdtd_startApplication(conf, logger):
 def startFDTDService(testName, configLine):
     f = getTempFile(functionalFDTDConfiguration)
     inputOption = "--config=%s %s"  % (f.name, configLine)
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     
     conf = ConfigFDTD(inputOption.split())
     conf.sanitize()
@@ -223,10 +224,10 @@ def startFDTDService(testName, configLine):
     logger.info(60 * '#')
     logger.info(60 * '#')
     
-    print "%s -- starting background daemon process ..." % testName
+    print("%s -- starting background daemon process ..." % testName)
     _fdtd_startApplication(conf, logger)
     
-    print "%s -- main process continues ..." % testName
+    print("%s -- main process continues ..." % testName)
         
     pidFile = conf.get("pidFile")
     # have to wait until daemon puts its PID into a file
@@ -243,7 +244,7 @@ def startFDTDService(testName, configLine):
     checkAndBlockUntilProcessBoundPort(conf.get("port"),
                                        pid,
                                        testName=testName)
-    print "%s -- daemon should be running now" % testName
+    print("%s -- daemon should be running now" % testName)
     return pid, conf, logger
       
 
@@ -299,11 +300,11 @@ def testFDTD(files,
         # TimeoutException which will be raised during FDTCopy.perform()
         # will actually translate into FDTCopyException
         fdtcp.perform(sndClientAction)
-    except (FDTCopyException, FDTDException), ex:
-        print "%s - exception occured:" % testName
-        print ex
+    except (FDTCopyException, FDTDException) as ex:
+        print("%s - exception occured:" % testName)
+        print(ex)
     
-    print "%s -- after transfer point" % testName
+    print("%s -- after transfer point" % testName)
     
     if doCleanup:
         print ("%s -- creating new proxy (previous hags/was "
@@ -334,7 +335,7 @@ def testFDTD(files,
         fdtcpClean.perform(cleanupAction)
             
     # shutdown the service
-    print "%s -- calling kill ... end" % testName
+    print("%s -- calling kill ... end" % testName)
     os.kill(pid, signal.SIGTERM)
     loggerClient.close()
 
@@ -350,14 +351,14 @@ class SignalThread(threading.Thread):
         self.wherePid = pid
         self.sigType = sigType
         self.timeoutBeforeSending = timeoutBeforeSending
-        print "SignalThread initialized."
+        print("SignalThread initialized.")
 
     def run(self):
         print ("SignalThread - running (waiting: %ss) " %
                self.timeoutBeforeSending)
         time.sleep(self.timeoutBeforeSending)
         os.kill(self.wherePid, self.sigType)
-        print "SignalThread - signal sent"
+        print("SignalThread - signal sent")
         
     
     
@@ -394,7 +395,7 @@ def testFdtcpSignalHandling(files, ports, testName=None):
                     host,
                     ports[0],
                     files[0].fileDest))
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     confClient = ConfigFDTCopy(inputOption.split())
     confClient.sanitize()
     loggerClient = Logger(name=testName,
@@ -443,13 +444,13 @@ def testFdtcpSignalHandling(files, ports, testName=None):
                 sndClientAction.timeout = 20000
                 transfer.toCleanup.append(transfer.sender.uri)
                 try:
-                    print "%s -- initiating FDT Java transfer ... " % testName
+                    print("%s -- initiating FDT Java transfer ... " % testName)
                     result = transfer.sender.perform(sndClientAction)
-                except FDTCopyShutdownBySignal, ex:
+                except FDTCopyShutdownBySignal as ex:
                     print ("%s -- exception caught (signal expected): %s" %
                            (testName, ex))                    
-                except FDTCopyException, ex:
-                    print "%s -- exception caught: %s" % (testName, ex)
+                except FDTCopyException as ex:
+                    print("%s -- exception caught: %s" % (testName, ex))
                 
                 loggerDst.debug("LOG CHECK: each FDTD._executors container "
                                 "shall have 1 item")
@@ -460,8 +461,8 @@ def testFdtcpSignalHandling(files, ports, testName=None):
                 # terminate transfer
                 # as this would happen in fdtcp.main() 
                 transfer.performCleanup()                
-        except Exception, exx:
-            print "%s -- unexpected exception: %s" % (testName, exx)
+        except Exception as exx:
+            print("%s -- unexpected exception: %s" % (testName, exx))
         else:
             loggerDst.debug("LOG CHECK: each FDTD._executors container "
                             "shall have 0 items")
@@ -469,9 +470,9 @@ def testFdtcpSignalHandling(files, ports, testName=None):
                             "shall have 0 items")
     finally:
         # shutdown the service
-        print "%s -- calling kill (to PID: %s) ... end" % (testName, pidDst)
+        print("%s -- calling kill (to PID: %s) ... end" % (testName, pidDst))
         os.kill(pidDst, signal.SIGTERM)
-        print "%s -- calling kill (to PID: %s) ... end" % (testName, pidSrc)
+        print("%s -- calling kill (to PID: %s) ... end" % (testName, pidSrc))
         os.kill(pidSrc, signal.SIGTERM)
         loggerClient.close()
         
@@ -539,7 +540,7 @@ def testFdtcpKilledBySignalCorrectTransfers(ports, testName = None):
     # now client, fdtcp stuff
     inputOption = ("--logFile=/tmp/fdtcp-%s.log --copyjobfile=%s" %
                    (testName, copyJobFileName))
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     confClient = ConfigFDTCopy(inputOption.split())
     confClient.sanitize()
     loggerClient = Logger(name=testName,
@@ -589,13 +590,13 @@ def testFdtcpKilledBySignalCorrectTransfers(ports, testName = None):
                 sndClientAction.timeout = 20000
                 transfer.toCleanup.append(transfer.sender.uri)
                 try:
-                    print "%s -- initiating FDT Java transfer ... " % testName
+                    print("%s -- initiating FDT Java transfer ... " % testName)
                     result = transfer.sender.perform(sndClientAction)
-                except FDTCopyShutdownBySignal, ex:
+                except FDTCopyShutdownBySignal as ex:
                     print ("%s -- exception caught (signal expected): "
                            "%s" % (testName, ex))                    
-                except FDTCopyException, ex:
-                    print "%s -- exception caught: %s" % (testName, ex)
+                except FDTCopyException as ex:
+                    print("%s -- exception caught: %s" % (testName, ex))
                 
                 # signal now received and process now: send clean up to
                 # terminate transfer
@@ -607,15 +608,15 @@ def testFdtcpKilledBySignalCorrectTransfers(ports, testName = None):
                 #print "%s -- hard kill of myself, current process
                 # (as if fdtcp gets SIGKILL) ... " % testName
                 #os.kill(fdtcpPid, signal.SIGKILL) # no chance to react
-                print "%s -- sending clean up ..." % testName
+                print("%s -- sending clean up ..." % testName)
                 # as implemented in fdtcp signal handling
                 transfer.performCleanup(waitTimeout=False)
                 
-        except Exception, exx:
-            print "%s -- unexpected exception: %s" % (testName, exx)
+        except Exception as exx:
+            print("%s -- unexpected exception: %s" % (testName, exx))
     finally:
         # shutdown the service
-        print "%s -- finally branch." % testName
+        print("%s -- finally branch." % testName)
         # do not kill anything here (in this specific test)
         """
         print "%s -- calling kill (to PID: %s) ... end" % (testName, pidDst)
@@ -664,7 +665,7 @@ def testFdtdShutdownForced(files, ports, testName=None):
                     host,
                     ports[0],
                     files[0].fileDest))
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     confClient = ConfigFDTCopy(inputOption.split())
     confClient.sanitize()
     loggerClient = Logger(name=testName,
@@ -708,11 +709,11 @@ def testFdtdShutdownForced(files, ports, testName=None):
                 # it finishes ...
                 # this command will stop the execution flow ...
                 transfer.toCleanup.append(transfer.sender.uri)
-                print "%s -- initiating FDT Java transfer ... " % testName
+                print("%s -- initiating FDT Java transfer ... " % testName)
                 signal.alarm(2)
                 try:
                     result = transfer.sender.perform(sndClientAction)
-                except FDTCopyException, ex:
+                except FDTCopyException as ex:
                     print ("%s -- exception caught (timeout expected): %s" %
                            (testName, ex))
                 
@@ -742,8 +743,8 @@ def testFdtdShutdownForced(files, ports, testName=None):
                 assert result.status == 0
                 print("%s -- test signal %s ok, both FDTD services still "
                       "running" % (testName, signal.SIGHUP))
-                print "%s -- testing signal %s ..." % (testName,
-                                                       signal.SIGTERM)
+                print("%s -- testing signal %s ..." % (testName,
+                                                       signal.SIGTERM))
                 os.kill(pidDst, signal.SIGTERM)
                 os.kill(pidSrc, signal.SIGTERM)
                 # on SIGTERM - FDTD services should shut whether or not 
@@ -755,16 +756,16 @@ def testFdtdShutdownForced(files, ports, testName=None):
                         p = Process(pidTest)
                         m = ("%s -- error, process %s exists when it "
                              "should not." % (testName, pidTest))
-                        print m
+                        print(m)
                         raise Exception(m)
-                    except NoSuchProcess, ex:
+                    except NoSuchProcess as ex:
                         print ("%s -- testing signals on process PID:%s "
                                "OK - not running" % (testName, pidTest))            
-        except Exception, exx:
-            print "%s -- unexpected exception: %s" % (testName, exx)
+        except Exception as exx:
+            print("%s -- unexpected exception: %s" % (testName, exx))
     finally:
         # both FDTD services shall be shut by now
-        print "%s -- finally clause." % testName
+        print("%s -- finally clause." % testName)
         loggerClient.close()
         
     # start one FDTD service again and test that it shuts on
@@ -778,20 +779,20 @@ def testFdtdShutdownForced(files, ports, testName=None):
     configLine = ("--port=%s --logFile=/tmp/fdtdLast-%s.log "
                   "--pidFile=/tmp/fdtdLast.pid" % (ports[0], testName)) 
     pidLast, confLast, loggerLast = startFDTDService(testName, configLine)
-    print "%s -- sending signal %s ..." % (testName, signal.SIGHUP) 
+    print("%s -- sending signal %s ..." % (testName, signal.SIGHUP)) 
     os.kill(pidLast, signal.SIGHUP)                
     time.sleep(2)
     try:
         p = Process(pidLast)
         m = ("%s -- error, process %s exists when it should "
              "not." % (testName, pidLast))
-        print m
+        print(m)
         raise RuntimeError(m)
-    except NoSuchProcess, ex:
+    except NoSuchProcess as ex:
         print("%s -- testing signal on process PID:%s OK - not "
               "running" % (testName, pidLast))
 
-    print "%s -- test finished." % testName
+    print("%s -- test finished." % testName)
   
   
 def testfdtcpFdt(files, port=8000, testName=None):
@@ -818,7 +819,7 @@ def testfdtcpFdt(files, port=8000, testName=None):
                     host,
                     port,
                     files[0].fileDest))
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     confClient = ConfigFDTCopy(inputOption.split())
     confClient.sanitize()
     loggerClient = Logger(name=testName,
@@ -864,9 +865,9 @@ def testfdtcpFdt(files, port=8000, testName=None):
                 # timeout
                 sndClientAction.timeout = 2
                 try:
-                    print "%s -- initiating FDT Java transfer ... " % testName
+                    print("%s -- initiating FDT Java transfer ... " % testName)
                     result = transfer.sender.perform(sndClientAction)
-                except FDTCopyException, ex:
+                except FDTCopyException as ex:
                     print ("%s -- exception caught (timeout expected "
                            "here): %s" % (testName, ex))
                 
@@ -881,7 +882,7 @@ def testfdtcpFdt(files, port=8000, testName=None):
                 # commented out as well as killing the daemon - it's obvious
                 # the transfer runs uninterrupted, so the 
                 # CleanupProcessesAction interrupts it as intended
-                print "%s -- performing clean up ... " % testName
+                print("%s -- performing clean up ... " % testName)
                 cl = CleanupProcessesAction(testAction.id + "-client",
                                             timeout=2)
                 try:
@@ -889,7 +890,7 @@ def testfdtcpFdt(files, port=8000, testName=None):
                                            loggerClient)
                     fdtCopyClean.perform(cl)
                     fdtCopyClean.proxy._release()
-                except FDTCopyException, ex:
+                except FDTCopyException as ex:
                     print ("%s -- exception During clean up: %s" %
                            (testName, ex))                    
                 cl = CleanupProcessesAction(testAction.id + "-server",
@@ -898,14 +899,14 @@ def testfdtcpFdt(files, port=8000, testName=None):
                     fdtCopyClean = FDTCopy(transfer.sender.uri, loggerClient)
                     fdtCopyClean.perform(cl)
                     fdtCopyClean.proxy._release()
-                except FDTCopyException, ex:
+                except FDTCopyException as ex:
                     print ("%s -- exception During clean up: %s" % 
                            (testName, ex))
-        except Exception, exx:
-            print "%s -- unexpected exception: %s" % (testName, exx)
+        except Exception as exx:
+            print("%s -- unexpected exception: %s" % (testName, exx))
     finally:
         # shutdown the service
-        print "%s -- calling kill ... end" % testName
+        print("%s -- calling kill ... end" % testName)
         os.kill(pid, signal.SIGTERM)
         loggerClient.close()
     
@@ -917,7 +918,7 @@ def checkAndBlockUntilProcessBoundPort(port, pid, testName = "<empty>"):
     whose PID is in the file pidFile.
     
     """
-    print "%s -- checkAndBlockUntilProcessBoundPort ..." % testName
+    print("%s -- checkAndBlockUntilProcessBoundPort ..." % testName)
     process = psutil.Process(int(pid))
     # example:
     # connection(fd=115, family=2, type=1, local_address=('10.0.0.1', 48776),
@@ -933,7 +934,7 @@ def checkAndBlockUntilProcessBoundPort(port, pid, testName = "<empty>"):
                 bound = True
                 break
         time.sleep(0.2)
-    print "%s -- checkAndBlockUntilProcessBoundPort finished." % testName
+    print("%s -- checkAndBlockUntilProcessBoundPort finished." % testName)
     
 
 
@@ -945,20 +946,20 @@ class MyThread(threading.Thread):
     def __init__(self, fdtd):
         threading.Thread.__init__(self)
         self.fdtd = fdtd
-        print "MyThread initialized."
+        print("MyThread initialized.")
 
     def run(self):
-        print "MyThread - starting the daemon"
+        print("MyThread - starting the daemon")
         self.fdtd.start()
-        print "MyThread - end of run() method"
+        print("MyThread - end of run() method")
         
     def stop(self):
-        print "MyThread - stopping the daemon"
+        print("MyThread - stopping the daemon")
         self.fdtd.shutdown()
         # although this is invoked, and port of the daemon running within
         # a thread released (as reported), the port (here 3000) still appears
         # in the subsequent checks
-        print "MyThread - finished"
+        print("MyThread - finished")
 
 
 
@@ -969,10 +970,10 @@ def testFDTDExecutorDuplicateId(port=9000, testName="RegistTest"):
     This test is using threading.
     
     """
-    print "FDTD, Executor id registration test"
+    print("FDTD, Executor id registration test")
     f = getTempFile(functionalFDTDConfiguration)
     inputOption = "--config=%s --port=%s" % (f.name, port)
-    print "%s -- inputOption: '%s'" % (testName, inputOption)
+    print("%s -- inputOption: '%s'" % (testName, inputOption))
     conf = ConfigFDTD(inputOption.split())
     conf.sanitize()
     del f
@@ -993,7 +994,7 @@ def testFDTDExecutorDuplicateId(port=9000, testName="RegistTest"):
     # if commented out, problem waits until thread finishes
     t.setDaemon(True)
     t.start()
-    print "%s -- daemon should be running now" % testName
+    print("%s -- daemon should be running now" % testName)
     # create ReceivingServerAction
     # destFiles - list if files at destination - just check (#36)            
     destFiles = ["nonsence"] 
@@ -1018,10 +1019,10 @@ def testFDTDExecutorDuplicateId(port=9000, testName="RegistTest"):
                                      logger=logger)
             raise Exception("%s -- test not ok, expected exception "
                             "didn't occur" % testName)
-        except FDTDException, ex:
-            print "%s -- test ok, expected exception occur" % testName
+        except FDTDException as ex:
+            print("%s -- test ok, expected exception occur" % testName)
     finally:
-        print "%s -- test done, stopping" % testName
+        print("%s -- test done, stopping" % testName)
         # stopping the thread should also clean running processes associated
         # with daemon so the previously run FDT Java stuff,
         t.stop()
@@ -1207,7 +1208,7 @@ def main():
     # (final kill -15 <fdtdpid1, fdtdpid2>,
     #     this test will be normally commented out
     testName = "8-fdtcpKillSignal"
-    print "%s -- not run, commented out" % testName 
+    print("%s -- not run, commented out" % testName) 
     #testFdtcpKilledBySignalCorrectTransfers((11000, 12000)
     #   , testName = testName)
     #checkForProcesses(processName="java", testName=testName)

@@ -10,6 +10,7 @@ by FDT Java and time delta of the first and very last log message in the
 transfer log file.
 
 """
+from __future__ import print_function
     
 
 import sys
@@ -39,12 +40,7 @@ class PlotData(object):
         
 # load the data
 ratesList = []
-try:
-    inputFile = sys.argv[1]
-except IndexError:
-    print "requires input argument - input file"
-    sys.exit(1)
-    
+inputFile = sys.argv[1]    
 fd = open(inputFile, 'r')
 for line in fd:
     # expects line in following format:
@@ -54,14 +50,14 @@ for line in fd:
     ratesList.append(rate)
 fd.close()
 
-print "%s input values" % len(ratesList)
+print("%s input values" % len(ratesList))
 
 pd = PlotData()
     
 # create bins based on min, resp. max. value of rate values to plot
 ma = max(ratesList)
 mi = min(ratesList)
-print "min value: %s max value: %s" % (mi, ma)
+print("min value: %s max value: %s" % (mi, ma))
 binSize = (ma - mi) / float(NUM_BINS)
 currBin = mi
 c = 0
@@ -86,7 +82,7 @@ numBinned = 0
 for binned in pd.y:
     numBinned += binned
     
-print "total number of binned values: %s (must be the same as number of input values)" % numBinned
+print("total number of binned values: %s (must be the same as number of input values)" % numBinned)
 
 
 # process result lists - consider only those which has occurrence > 0
@@ -97,9 +93,9 @@ for i in range(len(pd.y)):
         toPlotX.append(pd.rateBins[i])
         toPlotY.append(pd.y[i])
 
-print "###### to plot:"
-print toPlotX
-print toPlotY
+print("###### to plot:")
+print(toPlotX)
+print(toPlotY)
 
 pylab.setp(pylab.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
 pylab.plot(toPlotX, toPlotY, 'rs')

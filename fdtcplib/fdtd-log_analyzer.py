@@ -25,6 +25,7 @@ tasks / steps:
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -194,21 +195,21 @@ def getFiles(dir):
     """
     toProcess = []
     mask = "*transfer*.log*"
-    print "analyzing logs (mask: '%s') in '%s'" % (mask, dir)
+    print("analyzing logs (mask: '%s') in '%s'" % (mask, dir))
     content = os.listdir(dir)
     for f in content:
         if os.path.isfile(f) and fnmatch.fnmatch(f, mask):
             toProcess.append(f)
-    print "%s files matching" % len(toProcess)
+    print("%s files matching" % len(toProcess))
     return sorted(toProcess)
 
 
 def myprint(inputList, msg):
-    print '-' * 78
-    print msg
+    print('-' * 78)
+    print(msg)
     for i in inputList:
-        print i
-    print '\n'
+        print(i)
+    print('\n')
 
 
 def main():
@@ -234,7 +235,7 @@ def main():
         filter(lambda x: (x in data.notOkStatusList) and
                          (x not in data.alreadyBeingCreated), logFiles)
         
-    print "total analyzed %s log files\n" % len(logFiles)
+    print("total analyzed %s log files\n" % len(logFiles))
     
     gb = data.okBytes / 1024.0 / 1024.0 / 1024.0
     perc = len(data.okStatusList) / (len(logFiles) / 100.0)

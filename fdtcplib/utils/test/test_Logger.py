@@ -4,6 +4,7 @@ py.test unittest testsuite for the Logger module.
 __author__ = Zdenek Maxa
 
 """
+from __future__ import print_function
 
 
 import os
@@ -53,7 +54,7 @@ def testLoggerFile():
         
 def testLoggerWrongLogFile():
     testFile = "/dev/" + TEST_LOG_FILE
-    print testFile
+    print(testFile)
     py.test.raises(IOError, Logger, logFile=testFile, level=logging.DEBUG)
 
 
