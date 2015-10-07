@@ -201,9 +201,9 @@ class FDTDService(Pyro.core.ObjBase):
         m = ("Request received: %s %s\n%s" %
              (20 * '-', action.__class__.__name__, action))
         self.logger.debug(m)
-        numFiles, filesStr = getOpenFilesList()
-        self.logger.debug("Logging open files: %s items:\n%s" %
-                          (numFiles, filesStr))
+        #numFiles, filesStr = getOpenFilesList()
+        #self.logger.debug("Logging open files: %s items:\n%s" %
+        #                  (numFiles, filesStr))
         # should use separate, transfer request related log files?
         # logs sub-calls belonging to the same transfer will be appended
         transferSeparateLogFile = self.conf.get("transferSeparateLogFile")
@@ -246,9 +246,9 @@ class FDTDService(Pyro.core.ObjBase):
                 if not isinstance(action, (ReceivingServerAction,
                                            SendingClientAction)):
                     logger.close()
-            numFiles, filesStr = getOpenFilesList()
-            self.logger.debug("Logging open files: %s items:\n%s" %
-                              (numFiles, filesStr))
+            #numFiles, filesStr = getOpenFilesList()
+            #self.logger.debug("Logging open files: %s items:\n%s" %
+            #                  (numFiles, filesStr))
             self.logger.debug(m)
                         
     

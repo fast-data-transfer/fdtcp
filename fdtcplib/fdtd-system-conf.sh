@@ -30,9 +30,9 @@ export AUTHCLIENTJAR=$JAVA_LIBS/fdtcp/authclient.jar
 # jar file of the FDT Java application
 export FDTJAR=/home/dynes/fdt.jar
 # Hadoop adapter for FDT Java server side
-export FDTHDFSJAR=$JAVA_LIBS/fdt-hdfs.jar
+export FDTHDFSJAR=/home/dynes/OPT/fdtcp/javalibs/fdt-hdfs.jar
 # Hadoop dependencies of the FDT HDFS adapter (Hadoop 0.20)
-export FDTHDFSLIBS=/usr/lib/hadoop/hadoop-core.jar:/usr/lib/hadoop/lib/commons-logging-1.0.4.jar
+export FDTHDFSLIBS=/home/dynes/OPT/fdtcp/javalibs/hadoop-core.jar:/home/dynes/OPT/fdtcp/javalibs/commons-logging-1.0.4.jar
 
 export TEMP_JAVA_LIBS=$JAVA_LIBS
 export JAVA_LIBS=/home/dynes/OPT/fdtcp/authenticator/
