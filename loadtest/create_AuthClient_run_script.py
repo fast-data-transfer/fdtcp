@@ -24,7 +24,7 @@ f = open(outputFile, 'w')
 f.write("source ../fdtd-system-conf.sh\n\n")
 print("creating '%s' file ..." % outputFile)
 for i in range(1, NUMTESTS + 1):
-    t = TEMPLATE % { "numTest": "%03d" % i }
+    t = TEMPLATE % {"numTest": "%03d" % i}
     print(t)
     f.write("%s\n" % t)
 f.close()

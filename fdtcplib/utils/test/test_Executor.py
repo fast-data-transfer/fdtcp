@@ -20,40 +20,36 @@ from fdtcplib.utils.Logger import Logger
 from fdtcplib.utils.Executor import Executor, ExecutorException
 
 
-
 class MockCaller(object):
+
     def __init__(self):
         self.processes = []
-        
 
-    def addExecutor(self, e): # will get called inside e.execute
+    def addExecutor(self, e):  # will get called inside e.execute
         self.processes.append(e)
-        
 
-    def removeExecutor(self, e): # will get called inside e.execute
+    def removeExecutor(self, e):  # will get called inside e.execute
         self.processes.remove(e)
-        
 
     def checkExecutorPresence(self, e):
         """
         Return True of executor.id is already registered in the
         _executors container, False otherwise.
-        
+
         """
         if e in self.processes:
             return True
         else:
             return False
 
-        
 
 def getTempFile(content):
-    f = tempfile.NamedTemporaryFile("w+") # read / write
+    f = tempfile.NamedTemporaryFile("w+")  # read / write
     f.write(content)
     f.flush()
     f.seek(0)
     return f
-    
+
 
 def setup_module():
     pass
@@ -70,25 +66,25 @@ def testExecutorInstantiation():
                  catchLogs=False,
                  port=10,
                  logOutputToWaitFor="my log output",
-                 killTimeout=100) 
+                 killTimeout=100)
     assert e.id == "someid"
-    assert e.caller == None
+    assert e.caller is None
     assert e.command == "mycommand"
-    assert e.blocking == True
+    assert e.blocking
     assert e.catchLogs == False
     assert e.port == 10
     assert e.logOutputToWaitFor == "my log output"
     assert e.logOutputWaitTime == 0
-    assert e.userName == None
+    assert e.userName is None
     assert e.killTimeout == 100
     assert isinstance(e.logger, Logger) == True
 
-    assert e.stdOut == None
-    assert e.stdErr == None
+    assert e.stdOut is None
+    assert e.stdErr is None
     # process instance as created by subprocess.Popen
-    assert e.proc == None
+    assert e.proc is None
     # returncode from the underlying self.proc instance
-    assert e.returncode == None
+    assert e.returncode is None
 
 
 def testExecutorBlocking():
@@ -102,14 +98,14 @@ def testExecutorBlocking():
     print("running '%s'" % e)
     print("logs:%s" % logs)
     s = e.getLogs()
-    
+
     e = Executor("some_id", command, blocking=True, caller=None)
     logs = e.execute()
     # test __str__ method
     print("running '%s'" % e)
     print("logs:%s" % logs)
     s = e.getLogs()
-    
+
 
 def testExecutorNonBlocking():
     # need long running job
@@ -117,18 +113,18 @@ def testExecutorNonBlocking():
     e = Executor("some_id", command, blocking=False, caller=MockCaller())
     try:
         e.execute()
-        assert e.proc.poll() == None # means command is running
+        assert e.proc.poll() == None  # means command is running
         assert len(e.caller.processes) == 1
     finally:
         os.kill(e.proc.pid, signal.SIGKILL)
-    
+
     e = Executor("some_id", command, blocking=False, caller=None)
     try:
         e.execute()
-        assert e.proc.poll() == None # means command is running
+        assert e.proc.poll() == None  # means command is running
     finally:
         os.kill(e.proc.pid, signal.SIGKILL)
-    
+
 
 def testExecutorBlockingExceptionWrongCommand():
     command = "nonsensecommandnow"
@@ -145,14 +141,14 @@ def testExecutorNonBlockingExceptionWrongCommand():
     e = Executor("some_id", command, caller=None, blocking=False)
     py.test.raises(ExecutorException, e.execute)
 
-    
+
 def testExecutorNonBlockingException():
     # should fail due to permission denied
     command = "cat /etc/shadow"
     e = Executor("some_id", command, caller=MockCaller(), blocking=False)
     try:
         py.test.raises(ExecutorException, e.execute)
-        assert e.proc.poll() != None # means command failed
+        assert e.proc.poll() != None  # means command failed
         # the command failed, but if the caller is specified, it is
         # stored in its container for subsequent cleanup
         assert len(e.caller.processes) == 1
@@ -170,7 +166,7 @@ def testExecutorBlockingException():
     e = Executor("some_id", command, caller=MockCaller(), blocking=True)
     py.test.raises(ExecutorException, e.execute)
     try:
-        assert e.proc.wait() != 0 # means command failed
+        assert e.proc.wait() != 0  # means command failed
         # process has not been removed in
         # Executor._handleBlockingProcess()
         # remains in the executor container should there be required
@@ -182,8 +178,8 @@ def testExecutorBlockingException():
             os.kill(e.proc.pid, signal.SIGKILL)
         except OSError:
             pass
-        
-        
+
+
 def testExecutorLogsCatching():
     outputLogs = """------------------------------------------------------------------------------
 stdout:
@@ -203,8 +199,8 @@ echo "output to stderr" > /dev/stderr
     e = Executor("some_id", command, caller=None, blocking=True)
     output = e.execute()
     logs = e.getLogs()
-    
-    
+
+
 def testExecutorLogsNotCatching():
     outputLogs = """------------------------------------------------------------------------------
 stdout:
@@ -227,8 +223,8 @@ echo "output to stderr" > /dev/stderr
                  catchLogs=False,
                  blocking=True)
     logs = e.execute()
-    
-    
+
+
 def testExecutorNonBlockingWaitingForLogOutput():
     script = """
 c=2
@@ -243,7 +239,7 @@ sleep 1
 """
     f = getTempFile(script)
     command = "bash %s" % f.name
-    
+
     # wait for correct log output
     logOutputToWaitFor = "expected logging output"
     e = Executor("some_id",
@@ -254,12 +250,12 @@ sleep 1
     logs = e.execute()
     # the process shall be considered running - the expected log output
     # was captured
-    assert e.returncode == None # the process 
+    assert e.returncode is None  # the process
     time.sleep(3)
     # internal Executor returncode hasn't been updated since the last call
     # chain: .execute()
-    assert e.proc.poll() == 0 # by now shall finish with 0 (no errors)
-    
+    assert e.proc.poll() == 0  # by now shall finish with 0 (no errors)
+
     # wait for wrong log output
     logOutputToWaitFor = "EXPECTED LOGGING OUTPUT"
     # wait more than the time of running of script, it script will finish
@@ -271,7 +267,7 @@ sleep 1
                  logOutputToWaitFor=logOutputToWaitFor,
                  logOutputWaitTime=5)
     py.test.raises(ExecutorException, e.execute)
-    
+
     # wait too short time, so it seems the process runs anyway and check that
     logOutputToWaitFor = "rubbish"
     e = Executor("some_id",
@@ -285,4 +281,4 @@ sleep 1
     assert e.proc.poll() == None
     time.sleep(1)
     # by now it shall be finished
-    assert e.proc.poll() == 0 
+    assert e.proc.poll() == 0

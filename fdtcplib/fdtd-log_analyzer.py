@@ -36,6 +36,7 @@ import datetime
 
 
 class AnalysisData(object):
+
     def __init__(self):
         self.okStatusList = []
         self.notOkStatusList = []
@@ -56,14 +57,14 @@ class AnalysisData(object):
         self.addressUsedList = []
         # no CleanupProcessesAction at the end
         self.noEndingCleanupList = []
-        
+
 
 def getRate(fd, networkBytes):
     """
     returns performance rate of the corresponding transfer calculated
     from totalNetworkBytes values and time of the transfers. time is
     calculated as difference of the last and first log timestamp.
-    
+
     """
     def getTime(line):
         # the log line looks like this:
@@ -74,9 +75,9 @@ def getRate(fd, networkBytes):
         dt.extend(tm)
         dt = datetime.datetime(*[int(i) for i in dt])
         return dt
-        
+
     fd.seek(0)
-    lines = fd.readlines()    
+    lines = fd.readlines()
     startTimeLine = lines[0]
     # last line of the log file - closing the log file, following are 3x'\n'
     endTimeLine = lines[-4]
@@ -85,25 +86,25 @@ def getRate(fd, networkBytes):
     megaBytes = networkBytes / 1024.0 / 1024.0
     rate = megaBytes / duration.seconds
     return rate
-    
+
 
 def analyze(logFiles):
     """
     Implementation of above log analyzing tasks ... see above for
     description.
-    
+
     Patterns are:
 
     TotalBytes: 2818048
     TotalNetworkBytes: 2818048
     Exit Status: OK
-    
+
     or
-    
+
     TotalBytes: 2818048
     TotalNetworkBytes: 10354688
     Exit Status: Not OK
-    
+
     """
     okPattern = ("TotalBytes: (\d*)$\n.*TotalNetworkBytes: "
                  "(\d*)$\n.*Exit Status: OK")
@@ -116,12 +117,12 @@ def analyze(logFiles):
     addressUsedObj = re.compile("Address already in use")
     endingCleanupObj = re.compile("End of request "
                                   "CleanupProcessesAction serving.")
-    
+
     res = AnalysisData()
-        
+
     for fileName in logFiles:
         fd = open(fileName, 'r')
-        
+
         # analyze Exit Status: OK case
         match = okPattObj.search(fd.read())
         if match:
@@ -133,7 +134,7 @@ def analyze(logFiles):
             res.okBytes += totalBytes
             rate = getRate(fd, totalNetworkBytes)
             res.okRatesList.append(rate)
-                        
+
         # analyze Exit Status: Not OK case
         fd.seek(0)
         match = notOkPattObj.search(fd.read())
@@ -141,37 +142,37 @@ def analyze(logFiles):
             res.notOkStatusList.append(fileName)
             totalBytes = int(match.group(1))
             res.notOkBytes += totalBytes
-            
+
         fd.seek(0)
         match = alreadyPattObj.search(fd.read())
         if match:
             res.alreadyBeingCreated.append(fileName)
-            
+
         fd.seek(0)
         match = loggerClosedPattObj.search(fd.read())
         if match:
             res.loggerClosedList.append(fileName)
-            
+
         fd.seek(0)
         match = addressUsedObj.search(fd.read())
         if match:
             res.addressUsedList.append(fileName)
-            
+
         fd.seek(0)
         match = endingCleanupObj.search(fd.read())
         # count when not present!
         if not match:
             res.noEndingCleanupList.append(fileName)
-            
+
         fd.close()
-        
+
     return res
 
 
 def fileClosingAnalysis(logFiles):
     """
     Implementation of task 5.
-    
+
     """
     res = []
     for fileName in logFiles:
@@ -179,19 +180,19 @@ def fileClosingAnalysis(logFiles):
         lines = fd.readlines()
         # check for: "Logger closing.\n\n\n" at the end of the file
         ending = "Logger closing.\n"
-        # after this always follow 3x \n which are not checked here, 
+        # after this always follow 3x \n which are not checked here,
         # just -4th line
         if not lines[-4].endswith(ending):
             res.append(fileName)
         fd.close()
     return res
-        
+
 
 def getFiles(dir):
     """
     Takes into account just current working directory and file
     mask *transfer*.log* - log files for each transfer separately.
-    
+
     """
     toProcess = []
     mask = "*transfer*.log*"
@@ -222,21 +223,21 @@ def main():
     logFiles = getFiles(os.getcwd())
     data = analyze(logFiles)
     notClosed = fileClosingAnalysis(logFiles)
-    
+
     # list log files with neither of above (Status OK, Status not OK)
     notOkNorNotOk = filter(lambda x: (x not in data.okStatusList) and
                                      (x not in data.notOkStatusList),
-                                     logFiles)
-    
+                           logFiles)
+
     # list log files 'Exit Status: Not OK' and not
     # containing 'AlreadyBeingCreated'
     # => some other kind of problems
     notOkAndAlreadyBeingCreated = \
         filter(lambda x: (x in data.notOkStatusList) and
                          (x not in data.alreadyBeingCreated), logFiles)
-        
+
     print("total analyzed %s log files\n" % len(logFiles))
-    
+
     gb = data.okBytes / 1024.0 / 1024.0 / 1024.0
     perc = len(data.okStatusList) / (len(logFiles) / 100.0)
     m = ("'Exit Status: OK' files: %s files, %s GB in total, "
@@ -244,13 +245,13 @@ def main():
     toPrint = ["%s  %.2f MB/s" % (l, r) for l, r, in zip(data.okStatusList,
                                                          data.okRatesList)]
     myprint(toPrint, m)
-    
+
     gb = data.notOkBytes / 1024.0 / 1024.0 / 1024.0
     perc = len(data.notOkStatusList) / (len(logFiles) / 100.0)
     m = ("'Exit Status: Not OK' files: %s files, %s GB in total, "
          "%s %%, log files:" % (len(data.notOkStatusList), gb, perc))
     myprint(data.notOkStatusList, m)
-    
+
     inputData = (("Log files containing 'Exit Status: OK' where "
                   "TotalBytes and TotalNetworkBytes doesn't match, "
                   "%s files:\n", data.okNotMatchingBytes),
@@ -270,12 +271,12 @@ def main():
                  ("Log files not containing 'End of request "
                   "CleanupProcessesAction serving.': %s files:\n",
                   data.noEndingCleanupList)
-                )
-    
+                 )
+
     for msg, d in inputData:
         m = msg % len(d)
         myprint(d, m)
-        
+
 
 if __name__ == "__main__":
     main()

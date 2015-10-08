@@ -28,14 +28,13 @@ from utils.Logger import Logger
 from utils.utils import getHostName
 
 
-
 class ExecutorException(Exception):
     pass
 
 
 class Executor(object):
     """Executing external process."""
-        
+
     def __init__(self,
                  id,
                  command,
@@ -69,7 +68,7 @@ class Executor(object):
         self.userName = userName
         # in case of non-blocking scenario, there is limited possibility to
         # make sure that the process has really started (there is no .wait()
-        # used) and that it possibly bound a desired port - this attribute 
+        # used) and that it possibly bound a desired port - this attribute
         # offers an opportunity to wait for certain known log output from the
         # process that is being started.
         # other possibilities are checking output of fuser, lsof, but
@@ -79,25 +78,23 @@ class Executor(object):
         # in case of non-blocking process, wait this amount of time at
         # maximum for logOutputToWaitFor to come up before declaring the
         # process failed
-        self.logOutputWaitTime = logOutputWaitTime # [seconds]
-        
+        self.logOutputWaitTime = logOutputWaitTime  # [seconds]
+
         self.logger = logger or Logger(name="Executor",
                                        level=logging.DEBUG)
-        
+
         self.stdOut = None
         self.stdErr = None
         # process instance as created by subprocess.Popen
         self.proc = None
         # returncode from the underlying self.proc instance
         self.returncode = None
-                
-        
+
     def __str__(self):
         return "process PID: %s '%s'" % (self.proc.pid, self.command)
-    
-    
+
     def getLogs(self):
-        self.stdOut.seek(0) # move pointer back to beginning before read()
+        self.stdOut.seek(0)  # move pointer back to beginning before read()
         self.stdErr.seek(0)
         delim = 78 * '-'
         stdOutMsg = ("%s\nstdout:\n%s\n%s\nstderr:\n%s\n%s" %
@@ -108,30 +105,29 @@ class Executor(object):
                       delim))
         return stdOutMsg
 
-
     def _handleBlockingProcess(self):
         """
         Blocking scenario, e.g. FDT client party.
-        
-        """        
+
+        """
         m = ("Waiting for '%s' (pid: %s) to finish ..." %
              (self.command, self.proc.pid))
         self.logger.info(m)
-        
+
         # add into container of running processes, should process hang
         # for ever on wait()
-        if self.caller != None:
+        if self.caller is not None:
             self.caller.addExecutor(self)
-        
-        self.returncode = self.proc.wait() # waits here
-        
+
+        self.returncode = self.proc.wait()  # waits here
+
         # process finished here, remove it from the container of
         # running processes
-        if self.caller != None:
+        if self.caller is not None:
             self.caller.removeExecutor(self)
-        
+
         logs = self.getLogs()
-        
+
         # considered returncodes for a synchronous call
         if self.returncode == 0:
             self.logger.info("Command '%s' finished, no error raised, "
@@ -141,10 +137,9 @@ class Executor(object):
         else:
             m = ("Command '%s' failed, return code: "
                  "'%s'\nlogs:\n%s" % (self.command, self.returncode, logs))
-            #self.logger.error(m)
+            # self.logger.error(m)
             raise ExecutorException(m)
 
-    
     def _handleLogOutputWaiting(self):
         startTime = datetime.datetime.now()
         while True:
@@ -156,7 +151,7 @@ class Executor(object):
             if logs.rfind(self.logOutputToWaitFor) > -1:
                 self.logger.debug("Expected output '%s' captured, continue "
                                   "(PID: %s)." % (self.logOutputToWaitFor,
-                                                 self.proc.pid))
+                                                  self.proc.pid))
                 break
             self.returncode = self.proc.poll()
             if self.returncode > -sys.maxsize:
@@ -169,17 +164,16 @@ class Executor(object):
             # changed ... hence this additional check:
             checkTime = datetime.datetime.now()
             if (checkTime - startTime).seconds > self.logOutputWaitTime:
-                if self.returncode == None:
+                if self.returncode is None:
                     self.logger.error("Output log waiting time (%s seconds) "
                                       "is over and the process seems to run "
                                       "fine ..." % self.logOutputWaitTime)
                     break
                 else:
-                    #should not really happen - see .poll() above ...
+                    # should not really happen - see .poll() above ...
                     pass
         return logs
-    
-            
+
     def _handleNonBlockingProcess(self):
         """
         Non-blocking scenario, e.g. FDT server party.
@@ -196,58 +190,56 @@ class Executor(object):
         else:
             time.sleep(1)
             logs = self.getLogs()
-            
+
         # in case of failure - does return the same returncode as above
         # this next .poll() calls has to be here, above condition might have
         # escaped through log check (i.e. before .poll() call)
         self.returncode = self.proc.poll()
-        
-        if self.returncode == None:
+
+        if self.returncode is None:
             self.logger.info("Command '%s' is running (pid: %s) ..." %
-                            (self.command, self.proc.pid))
+                             (self.command, self.proc.pid))
         else:
             m = ("Command '%s' failed, returncode: '%s'\nlogs:\n%s" %
                  (self.command, self.returncode, logs))
-            #self.logger.error(m) # log locally
+            # self.logger.error(m) # log locally
             raise ExecutorException(m)
 
         # register newly created process with the caller
-        if self.caller != None:
+        if self.caller is not None:
             self.caller.addExecutor(self)
-            
+
         return logs
 
-    
     def _prepareLogFiles(self):
         # create tmp files for stdOut, stdErr of the process (w+ - read/write)
         self.stdOut = tempfile.TemporaryFile("w+")
         self.stdErr = tempfile.TemporaryFile("w+")
 
         if self.catchLogs:
-            return {"stdout": self.stdOut, "stderr" : self.stdErr}
+            return {"stdout": self.stdOut, "stderr": self.stdErr}
         else:
             m = "<catching disabled on request>\n"
             self.stdOut.write(m)
             self.stdErr.write(m)
             return {}
 
-
     def execute(self):
         logsConf = self._prepareLogFiles()
         self.logger.info("Executing command: '%s' ..." % self.command)
-        
+
         # subprocess.Popen() requires arguments in a sequence, if run
-        # with shell=True argument then could take the whole string      
+        # with shell=True argument then could take the whole string
         try:
             self.proc = subprocess.Popen(self.command.split(), **logsConf)
-        # python 2.4.3 subprocess doesn't have subprocess.CalledProcessError            
+        # python 2.4.3 subprocess doesn't have subprocess.CalledProcessError
         except OSError as ex:
             # logs should be available
             logs = self.getLogs()
             m = ("Command '%s' failed, reason: %s\nlogs:\n%s" %
                  (self.command, ex, logs))
             raise ExecutorException(m)
-        
+
         if self.blocking:
             return self._handleBlockingProcess()
         else:

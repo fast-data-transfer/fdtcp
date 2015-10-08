@@ -23,7 +23,7 @@ def testTransferFileInstanceAttributesAccess():
     print(transferFile.fileSrc)
     print(transferFile.fileDest)
     print(transferFile.result)
-        
+
 
 def testTransferFileStr():
     transferFile = TransferFile("file1", "file2")

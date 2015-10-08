@@ -18,7 +18,8 @@ FILES = "/tmp/fdt*"
 NUMTESTS = 10
 
 
-import os, shutil
+import os
+import shutil
 
 c = "rm -fr %s" % FILES
 print("cleaning files: %s" % c)
@@ -28,15 +29,15 @@ if os.path.exists(DEST):
     print("deleting directory tree: %s" % DEST)
     shutil.rmtree(DEST)
     os.mkdir(DEST)
-    
+
     # not necessary - the permissions are right, FDT will create
     # non-existing destination directories itself
-    #print "creating loadtest directory structure ..."
-    ## number of tests are iterated from 1
-    #for i in range(1, NUMTESTS + 1):
+    # print "creating loadtest directory structure ..."
+    # number of tests are iterated from 1
+    # for i in range(1, NUMTESTS + 1):
     #    dirName = "test-%03d" % i
     #    path = os.path.join(DEST, dirName)
     #    os.mkdir(path)
     #os.system("ls -R %s" % DEST)
 else:
-    print("directory '%s', nothing done" % DEST) 
+    print("directory '%s', nothing done" % DEST)

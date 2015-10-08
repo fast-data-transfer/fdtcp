@@ -23,10 +23,10 @@ for i in range(1, NUMTESTS + 1):
     f = open(copyJobFileName, 'w')
     print("\n\ncreating '%s'" % copyJobFileName)
     for ii in range(1, NUMFILES + 1):
-        t = TEMPLATE % { "numFile": "%02d" % ii, "numTest": "%03d" % i }
+        t = TEMPLATE % {"numFile": "%02d" % ii, "numTest": "%03d" % i}
         print(t)
         f.write("%s\n" % t)
-    t = MD5LINE % { "numTest": "%03d" % i }
+    t = MD5LINE % {"numTest": "%03d" % i}
     print(t)
     f.write(t)
 f.close()

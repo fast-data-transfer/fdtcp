@@ -16,7 +16,7 @@ outputFile = "fdtcp_runner.sh"
 f = open(outputFile, 'w')
 print("creating '%s' file ..." % outputFile)
 for i in range(1, NUMTESTS + 1):
-    t = TEMPLATE % { "numTest": "%03d" % i }
+    t = TEMPLATE % {"numTest": "%03d" % i}
     print(t)
-    f.write("%s\n" % t) 
+    f.write("%s\n" % t)
 f.close()

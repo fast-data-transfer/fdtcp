@@ -1,7 +1,7 @@
 class TimeoutException(Exception):
     """
     SIGALARM was sent to the process, interrupt current action.
-    
+
     """
     pass
 
@@ -9,7 +9,7 @@ class TimeoutException(Exception):
 class FDTCopyException(Exception):
     """
     FDTCopy exception wrapping PYRO errors and various.
-    
+
     """
     pass
 
@@ -26,7 +26,7 @@ class ServiceShutdownBySignal(Exception):
     Is an exception-based signal to terminate the service daemon.
     """
     pass
-    
+
 
 class FDTDException(Exception):
     """

@@ -8,7 +8,7 @@ Script for plot on occurrence study of
 #39 https://trac.hep.caltech.edu/trac/fdtcp/ticket/39 (parent ticket)
 
 AlreadyBeingCreated-log_file_names - list of transfer separate log file
-    names when this exception occurred (61 cases during 
+    names when this exception occurred (61 cases during
     2011-04-12--06h:43m to 2011-04-14--10h:46m (~52h))
     details on #5:comment:20
 AlreadyBeingCreated-timestamps - just timestamps extracted
@@ -18,7 +18,7 @@ AlreadyBeingCreated-timestamps - just timestamps extracted
 
 """
 from __future__ import print_function
-    
+
 
 import time
 import sys
@@ -40,21 +40,21 @@ pylab.plot(a, b, 'rs', a, b, 'k')
 BIN_SIZE = 4
 # max. pause during which the exception didn't occur was over 5h, so
 # make the entire period 6h (360mins)
-ENTIRE_PERIOD = 360  
+ENTIRE_PERIOD = 360
 
 
 class PlotData(object):
     """
     PlotData - time bins are BIN_SIZE minutes bins into which fall
     exception events offsets from the previous occurrence.
-     
+
     """
+
     def __init__(self):
         self.timeBins = []
-        self.x = [] # what will be plotted - number of minutes bins on X axis
-        self.y = [] # what will be plotted - number of occurrences in the time bin
-        
-        
+        self.x = []  # what will be plotted - number of minutes bins on X axis
+        self.y = []  # what will be plotted - number of occurrences in the time bin
+
 
 # make bins of BIN_SIZE up ENTIRE_PERIOD
 pd = PlotData()
@@ -69,7 +69,7 @@ for i in range(BIN_SIZE, ENTIRE_PERIOD, BIN_SIZE):
 
 # reference time for calculating time delta, time difference
 refDelta = datetime.time(0, BIN_SIZE)
-datetimes = [] # on x axis
+datetimes = []  # on x axis
 for dt in open("AlreadyBeingCreated-timestamps", 'r'):
     dt = dt.strip()
     dt = dt.split('-')
@@ -80,7 +80,7 @@ for dt in open("AlreadyBeingCreated-timestamps", 'r'):
     # can only calculate delta in the second iteration
     if len(datetimes) != 0:
         delta = dObj - previous
-    
+
     previous = dObj
 
     datetimes.append(date2num(dObj))
@@ -123,18 +123,23 @@ print("###### to plot:")
 print(toPlotX)
 print(toPlotY)
 
-pylab.setp(pylab.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
+pylab.setp(
+    pylab.gca().get_xticklabels(),
+    rotation=45,
+    horizontalalignment='right')
 pylab.plot(toPlotX, toPlotY, 'rs')
 
-pylab.xlabel("%s [min] time offset bins (time from previous occurrence)" % BIN_SIZE)
+pylab.xlabel(
+    "%s [min] time offset bins (time from previous occurrence)" %
+    BIN_SIZE)
 pylab.ylabel("number of occurrences with corresponding time offset")
 pylab.title("AlreadyBeingCreated HDFS exceptions time offset occurrences")
 pylab.grid(True)
 
 # saves plot into a png file
-#pylab.savefig('simple_plot')
+# pylab.savefig('simple_plot')
 
 #pylab.subplots_adjust(left=0.3, bottom=0.3)
-#ggpylab.subplots_adjust(bottom=0.18)
+# ggpylab.subplots_adjust(bottom=0.18)
 
 pylab.show()

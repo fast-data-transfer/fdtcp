@@ -13,11 +13,10 @@ import pprint
 import types
 
 
-
 class Logger(logging.getLoggerClass()):
     """
     Customised Logger. Logging either to console or into a file.
-    
+
     """
 
     def __init__(self, name="Logger", logFile=None, level=logging.DEBUG):
@@ -27,12 +26,12 @@ class Logger(logging.getLoggerClass()):
         Check that level is int and one of the values from logging constants
         added, since passing e.g. str value "DEBUG" results into empty log
         file and disappearing log messages.
-        
+
         """
         self.myName = name
         self.myLogFile = logFile
-        
-        if type(level) is not int:
+
+        if not isinstance(level, int):
             m = ("Wrong level '%s' option. Must be integer constant from "
                  "logging module." % level)
             raise Exception(m)
@@ -68,18 +67,17 @@ class Logger(logging.getLoggerClass()):
 
         # should be first logging message
         self._myLevel = logging.getLevelName(self.getEffectiveLevel())
-        
-        self.pp = pprint.PrettyPrinter(indent = 4)
-        
-        m =("Logger instance initialised (level: %s, log file: %s)\n%s" %
-            (self._myLevel, self.logFile, 78 * '=')) 
+
+        self.pp = pprint.PrettyPrinter(indent=4)
+
+        m = ("Logger instance initialised (level: %s, log file: %s)\n%s" %
+             (self._myLevel, self.logFile, 78 * '='))
         self._myLog(logging.DEBUG, m)
-        
-        
+
     def _myLog(self, level, msg, traceBack=False):
         """
         Single entry-point method to emit the log message.
-        
+
         """
         if traceBack:
             # get last exception traceback
@@ -91,7 +89,7 @@ class Logger(logging.getLoggerClass()):
             else:
                 # trace will now include all previous exception message
                 msg = trace
-                
+
         if self.logFile and not self._logFileHandlerOpen:
             # logging into file enabled, yet the file seems to have been
             # closed log the message and close the file again
@@ -100,7 +98,7 @@ class Logger(logging.getLoggerClass()):
             tmpHandler.setFormatter(self._myFormatter)
             self.addHandler(tmpHandler)
             m = ("Attempt to log into already closed '%s', temporarily "
-                 "reopening for log message: ..." % self.logFile) 
+                 "reopening for log message: ..." % self.logFile)
             self.log(logging.CRITICAL, m)
             self.log(level, msg)
             self.log(logging.CRITICAL, "Closing '%s' ..." % self.logFile)
@@ -108,7 +106,6 @@ class Logger(logging.getLoggerClass()):
             tmpHandler.close()
             return
         self.log(level, msg)
-
 
     def close(self):
         # can't be put into __del__() - gives error (file already closed)
@@ -118,36 +115,33 @@ class Logger(logging.getLoggerClass()):
             self._logFileHandler.close()
             self._logFileHandlerOpen = False
 
-            
     def isOpen(self):
         return self._logFileHandlerOpen
-        
 
     def getTracebackSimple(self):
         """
         Returns formatted traceback of the most recent exception.
-        
+
         """
         # sys.exc_info() most recent exception
         trace = traceback.format_exception(*sys.exc_info())
-        noExcepResponse = ['None\n'] 
+        noExcepResponse = ['None\n']
         # this is returned when there is no exception
         if trace == noExcepResponse:
             return None
         tbSimple = "".join(trace)  # may want to add '\n'
         return tbSimple
 
-
     def getTracebackComplex(self, localsLevels=5):
         """
         Returns formatted traceback of the most recent exception.
         Could write into a file-like object (argument would be
         output = sys.stdout), now returns result in formatted string.
-        
+
         """
         tbComplex = "".join([78 * '-', '\n'])
         tbComplex = "".join([tbComplex, "Problem: %s\n" % sys.exc_info()[1]])
-        
+
         trace = sys.exc_info()[2]
         stackString = []
         while trace is not None:
@@ -168,14 +162,14 @@ class Logger(logging.getLoggerClass()):
         for i in range(len(stackString)):
             (filename, lineno, name, line, frame) = stackString[i]
             outputLine = (" File '%s', line %d, in %s (level %i):\n" %
-                         (filename, lineno, name, i))
+                          (filename, lineno, name, i))
             tbComplex = "".join([tbComplex, outputLine])
             if line:
                 tbComplex = "".join([tbComplex, "  %s\n" % line])
             if i >= localsLevel:
                 # want to see complete stack if exception came from a template
                 pass
-        
+
         tbComplex = "".join([tbComplex, 78 * '-', '\n'])
 
         del stackString[:]
@@ -183,13 +177,12 @@ class Logger(logging.getLoggerClass()):
         trace = None
         return tbComplex
 
-
     def _setWrapperMethods(self):
         """
         This method makes sure that all possible logging methods:
             warning, warn, fatal, error, debug, critical, info will be
             called via _myLog(self, level, msg)
-        
+
         """
         pass
         """
@@ -206,44 +199,34 @@ class Logger(logging.getLoggerClass()):
         manually (below)
         """
 
-    
     def warning(self, msg):
         self._myLog(logging.WARNING, msg)
 
-    
     def warn(self, msg):
         self._myLog(logging.WARNING, msg)
 
-        
     def fatal(self, msg, traceBack=False):
         self._myLog(logging.FATAL, msg)
 
-        
     def error(self, msg, traceBack=False):
         self._myLog(logging.ERROR, msg, traceBack=traceBack)
 
-        
     def debug(self, msg, traceBack=False):
         self._myLog(logging.DEBUG, msg, traceBack=traceBack)
 
-        
     def critical(self, msg, traceBack=False):
         self._myLog(logging.CRITICAL, msg, traceBack=traceBack)
-        
-        
+
     def info(self, msg):
         self._myLog(logging.INFO, msg)
 
-    
     def pprintFormat(self, obj):
         r = self.pp.pformat(obj)
         return r
-        
-    
+
     def __del__(self):
         pass
-    
-    
+
     def __str__(self):
         r = "%s name:%s level:%s logFile:%s" % (self.__class__.__name__,
                                                 self.myName, self._myLevel,

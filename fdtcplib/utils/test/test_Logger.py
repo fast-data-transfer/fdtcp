@@ -16,12 +16,12 @@ import py.test
 
 from fdtcplib.utils.Logger import Logger
 
-    
+
 TEST_LOG_FILE = "/tmp/testlogfile.log"
 
 
 def testLogger():
-    logger = Logger("test logger",  level=logging.DEBUG)
+    logger = Logger("test logger", level=logging.DEBUG)
     logger.info("info message")
     logger.warn("warn message")
     logger.warning("warning message")
@@ -30,7 +30,7 @@ def testLogger():
     logger.fatal("fatal message")
     logger.debug("debug message")
     logger.close()
-    
+
 
 def testLoggerFile():
     testFile = TEST_LOG_FILE
@@ -50,8 +50,8 @@ def testLoggerFile():
     else:
         m = "Can't do logging into file test, file %s exists." % testFile
         py.test.fail(m)
-    
-        
+
+
 def testLoggerWrongLogFile():
     testFile = "/dev/" + TEST_LOG_FILE
     print(testFile)
@@ -66,41 +66,41 @@ def testLoggerWrongLevelOption():
                    "test logger",
                    logFile=testFile,
                    level="DEBUG")
-        
-        
+
+
 def testTracebackSimple():
-    logger = Logger("test logger",  level=logging.DEBUG)
+    logger = Logger("test logger", level=logging.DEBUG)
     try:
-        1/0
+        1 / 0
     except Exception:
         logger.getTracebackSimple()
         logger.error("exception", traceBack=True)
         logger.fatal("exception", traceBack=True)
     logger.close()
-    
+
 
 def testTracebackComplex():
-    logger = Logger("test logger",  level=logging.DEBUG)
+    logger = Logger("test logger", level=logging.DEBUG)
     try:
-        1/0
+        1 / 0
     except Exception:
         logger.getTracebackComplex()
     logger.close()
-    
-    
+
+
 def testLogIntoClosedLogFile():
     """
     Test writing into a closed logger. The logger should handle.
-    
+
     """
     testFile = TEST_LOG_FILE
-    for met, level in (('warning',  logging.WARNING),
-                       ('warn',     logging.WARNING),
-                       ('fatal',    logging.FATAL),
-                       ('error',    logging.ERROR),
-                       ('debug',    logging.DEBUG),
+    for met, level in (('warning', logging.WARNING),
+                       ('warn', logging.WARNING),
+                       ('fatal', logging.FATAL),
+                       ('error', logging.ERROR),
+                       ('debug', logging.DEBUG),
                        ('critical', logging.CRITICAL),
-                       ('info',     logging.INFO)):
+                       ('info', logging.INFO)):
         if os.path.exists(testFile):
             m = "Can't do logging into file test, file %s exists." % testFile
             py.test.fail(m)
@@ -121,8 +121,8 @@ def testLogIntoClosedLogFile():
                  "not." % (testFile, toSearchMsg))
             py.test.fail(m)
         os.remove(testFile)
-        
-        
+
+
 def testLoggerTraceBackTrueOnNoException():
     logger = Logger("test file logger", level=logging.DEBUG)
     logger.debug("my msg", traceBack=True)
