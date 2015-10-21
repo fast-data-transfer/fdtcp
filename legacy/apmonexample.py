@@ -1,7 +1,7 @@
 from __future__ import print_function
 # example for testing / setting up ApMon MonALISA monitoring
 
-from ApMon import apmon
+import apmon
 import time
 import random
 

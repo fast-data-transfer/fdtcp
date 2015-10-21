@@ -34,13 +34,13 @@ from threading import Lock
 # to PYRO_STORAGE env. variable setting) - must be before first
 # PYRO import
 import fdtcplib
-from ApMon import apmon
+import apmon
 from M2Crypto import SSL  # just test dependencies
 from psutil import Process
 from psutil import NoSuchProcess
-import Pyro
-import Pyro.core
-from Pyro.errors import PyroError
+import Pyro4
+import Pyro4.core
+from Pyro4.errors import PyroError
 from fdtcplib.utils.Executor import Executor
 from fdtcplib.utils.Executor import ExecutorException
 from fdtcplib.utils.Config import Config

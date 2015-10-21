@@ -21,28 +21,24 @@
 # shortcut to the Java libraries directory
 export JAVA_LIBS=/usr/share/java
 
-export JAVA_HOME=/usr/java/latest
+export JAVA_HOME=/usr/
 
 # AuthService, AuthClient Java applications - part of the project
 export AUTHSERVICEJAR=$JAVA_LIBS/fdtcp/authservice.jar
 export AUTHCLIENTJAR=$JAVA_LIBS/fdtcp/authclient.jar
 
 # jar file of the FDT Java application
-export FDTJAR=/home/dynes/fdt.jar
+export FDTJAR=$JAVA_LIBS/fdt.jar
 # Hadoop adapter for FDT Java server side
-export FDTHDFSJAR=/home/dynes/OPT/fdtcp/javalibs/fdt-hdfs.jar
+export FDTHDFSJAR=$JAVA_LIBS/fdt-hdfs.jar
 # Hadoop dependencies of the FDT HDFS adapter (Hadoop 0.20)
-export FDTHDFSLIBS=/home/dynes/OPT/fdtcp/javalibs/hadoop-core.jar:/home/dynes/OPT/fdtcp/javalibs/commons-logging-1.0.4.jar
-
-export TEMP_JAVA_LIBS=$JAVA_LIBS
-export JAVA_LIBS=/home/dynes/OPT/fdtcp/authenticator/
+export FDTHDFSLIBS=$JAVA_LIBS/hadoop-core.jar:$JAVA_LIBS/commons-logging-1.0.4.jar
 
 # Grid Authentication Java libraries
 # AuthService, AuthClient Java applications - part of the project
 export AUTHSERVICEJAR=$JAVA_LIBS/authservice.jar
 export AUTHCLIENTJAR=$JAVA_LIBS/authclient.jar
 export GSILIBS=$JAVA_LIBS/cog-jglobus/cog-jglobus.jar:$JAVA_LIBS/cog-jglobus/puretls.jar:$JAVA_LIBS/cog-jglobus/junit.jar:$JAVA_LIBS/cog-jglobus/cryptix-asn1.jar:$JAVA_LIBS/cog-jglobus/cog-url.jar:$JAVA_LIBS/cog-jglobus/log4j-1.2.13.jar:$JAVA_LIBS/cog-jglobus/commons-logging-1.1.jar:$JAVA_LIBS/cog-jglobus/cog-jobmanager.jar:$JAVA_LIBS/cog-jglobus/jce-jdk13-131.jar:$JAVA_LIBS/cog-jglobus/cryptix32.jar:$JAVA_LIBS/cog-jglobus/cryptix.jar:$JAVA_LIBS/cog-jglobus/jgss.jar
-export JAVA_LIBS=$TEMP_JAVA_LIBS
 
 # GSI authentication settings - should be adjusted locally, if necessary,
 # and appropriate ownership set
