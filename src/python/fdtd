@@ -38,9 +38,9 @@ import apmon
 from M2Crypto import SSL  # just test dependencies
 from psutil import Process
 from psutil import NoSuchProcess
-import Pyro4
-import Pyro4.core
-from Pyro4.errors import PyroError
+import Pyro
+import Pyro.core
+from Pyro.errors import PyroError
 from fdtcplib.utils.Executor import Executor
 from fdtcplib.utils.Executor import ExecutorException
 from fdtcplib.utils.Config import Config
@@ -722,8 +722,8 @@ class ConfigFDTD(Config):
                      "portAuthService",
                      "fdtSendingClientKillTimeout",
                      "fdtServerLogOutputTimeout",
-                     "fdtReceivingServerKillTimeout",
-                     "authServiceLogOutputTimeout"]
+                     "fdtReceivingServerKillTimeout",]
+                     #"authServiceLogOutputTimeout"]
     # mandatory configuration values, strings
     _mandatoryStr = ["fdtSendingClientCommand",
                      "fdtReceivingServerCommand",
@@ -731,8 +731,8 @@ class ConfigFDTD(Config):
                      "portRangeFDTServer",
                      "transferSeparateLogFile",
                      "fdtServerLogOutputToWaitFor",
-                     "authServiceLogOutputToWaitFor",
-                     "authServiceCommand",
+                     #"authServiceLogOutputToWaitFor",
+                     #"authServiceCommand",
                      "killCommandSudo",
                      "killCommand",
                      "daemonize"]
@@ -812,23 +812,25 @@ class AuthService(object):
 
         self.logger.debug("Creating instance of AuthService ...")
         self.options = {}
-        self.options["port"] = self.conf.get("portAuthService")
-        command = self.conf.get("authServiceCommand") % self.options
-        toWaitFor = self.conf.get("authServiceLogOutputToWaitFor")
-        timeout = self.conf.get("authServiceLogOutputTimeout")
-        self.executor = Executor("AuthService",
-                                 command=command,
-                                 blocking=False,
-                                 caller=self.fdtd,
-                                 logOutputToWaitFor=toWaitFor,
-                                 logOutputWaitTime=timeout,
-                                 logger=self.logger)
-        try:
-            output = self.executor.execute()
-            self.logger.debug(output)
-        except ExecutorException as ex:
-            m = "Could not start AuthService, reason: %s" % ex
-            raise AuthServiceException(m)
+        return
+
+    #    self.options["port"] = self.conf.get("portAuthService")
+    #    command = self.conf.get("authServiceCommand") % self.options
+    #    toWaitFor = self.conf.get("authServiceLogOutputToWaitFor")
+    #    timeout = self.conf.get("authServiceLogOutputTimeout")
+    #    self.executor = Executor("AuthService",
+    #                             command=command,
+    #                             blocking=False,
+    #                             caller=self.fdtd,
+    #                             logOutputToWaitFor=toWaitFor,
+    #                             logOutputWaitTime=timeout,
+    #                             logger=self.logger)
+    #    try:
+    #        output = self.executor.execute()
+    #        self.logger.debug(output)
+    #    except ExecutorException as ex:
+    #        m = "Could not start AuthService, reason: %s" % ex
+    #        raise AuthServiceException(m)
 
 
 def daemonize(conf, logger):

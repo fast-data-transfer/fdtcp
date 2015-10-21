@@ -58,12 +58,11 @@ try:
     # force loading fdtcplib.__init__.py (see comment in this file related
     # to PYRO_STORAGE env. variable setting) - must be before first PYRO import
     import fdtcplib
-    from ApMon import apmon
+    import apmon
     import Pyro
     import Pyro.core
     from Pyro.errors import PyroError
     from Pyro.errors import ProtocolError
-    from Pyro.errors import URIError
     from Pyro.errors import ConnectionClosedError
     from fdtcplib.utils.Executor import ExecutorException
     from fdtcplib.utils.Config import Config
@@ -92,7 +91,7 @@ class FDTCopy(object):
         try:
             Pyro.core.initClient()
             self.proxy = Pyro.core.getProxyForURI(self.uri)
-        except (AttributeError, URIError), ex:
+        except AttributeError as ex:
             m = "Incorrect URI '%s', could not create PYRO proxy for FDTD service." % self.uri
             raise FDTCopyException(m)
         
