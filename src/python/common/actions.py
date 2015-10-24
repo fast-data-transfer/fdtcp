@@ -139,7 +139,10 @@ class ReceivingServerAction(Action):
         self.options["sudouser"] = self.options["gridUserDest"]
         self.options["port"] = port
         self.options["monID"] = self.id
-        self.command = conf.get("fdtReceivingServerCommand") % self.options
+        newOptions = self.options
+        if self.options['circuitClientIP'] and self.options['circuitServerIP']:
+            newOptions['clientIP'] = self.options['circuitClientIP']
+        self.command = conf.get("fdtReceivingServerCommand") % newOptions
 
     def _checkTargetFileNames(self, destFiles):
         """
@@ -334,8 +337,11 @@ class SendingClientAction(Action):
         fileList.close()
         self.options["fileList"] = fileListName
         self.options["monID"] = self.id
+        newOptions = self.options
+        if self.options['circuitClientIP'] and self.options['circuitServerIP']:
+            newOptions['hostDest'] = self.options['circuitServerIP']
 
-        self.command = conf.get("fdtSendingClientCommand") % self.options
+        self.command = conf.get("fdtSendingClientCommand") % newOptions
 
     def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """

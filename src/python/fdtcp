@@ -181,7 +181,9 @@ class Transfer(object):
         self.conf = conf
         self.apMon = apMon # instance for ApMon, MonALISA monitoring
         self.logger = logger
-        
+        # if only one will be specified, it will not be a problem. This needs to be printed about problem!
+        self.circuitServerIP = conf.get('servercircuitip')
+        self.circuitClientIP = conf.get('clientcircuitip') 
         
         
     def __str__(self):
@@ -242,7 +244,6 @@ class Transfer(object):
         
         remoteGridUserSrc = "dynes"
         remoteGridUserDest = "dynes"
-        
         # find out client IP address, server will need it (-f <allowedIPsList>) when starting
         clientIP = socket.gethostbyname(self.hostSrc)
         self.logger.debug("Client IP address is: '%s'" % clientIP)
@@ -259,7 +260,8 @@ class Transfer(object):
         # destFiles - list if files at destination - just check (#36)
         destFiles = [f.fileDest for f in self.files]
         options = dict(gridUserDest = remoteGridUserDest, clientIP = clientIP,
-                       destFiles = destFiles)
+                       destFiles = destFiles, circuitServerIP = self.circuitServerIP, 
+                       circuitClientIP = self.circuitClientIP)
         recvServerAction = ReceivingServerAction(self.id, options)   
         result = self.receiver.perform(recvServerAction)
         serverFDTPort = result.serverPort
@@ -275,7 +277,9 @@ class Transfer(object):
         # start sending FDT client which initiates the transfer process
         options = dict(port = serverFDTPort, hostDest = self.hostDest,
                               transferFiles = self.files,
-                              gridUserSrc = remoteGridUserSrc)   
+                              gridUserSrc = remoteGridUserSrc,
+                              circuitServerIP = self.circuitServerIP,
+                              circuitClientIP = self.circuitClientIP)   
         sndClientAction = SendingClientAction(self.id, options)
         # this command will stop the execution flow, for very very long if
         # the transfer data is bulky - status monitoring via MonALISA
@@ -473,6 +477,10 @@ class ConfigFDTCopy(Config):
         self._parser.add_option("-t", "--timeout", help = help)
         help = "optional argument - output log file"
         self._parser.add_option("-l", "--logFile", help = help)
+        help = "optional argument for specifying client circuit IP"
+        self._parser.add_option("-i", "--clientcircuitip", help = help)
+        help = "optional argument for specifying server circuit IP"
+        self._parser.add_option("-y", "--servercircuitip", help = help)
 
     def processCommandLineOptions(self, args):
         """This method gets called from base class"""
@@ -631,6 +639,7 @@ def main():
                     # these conditions, do not let fdtd wait timeout period until
                     # the processes may finish on their own
                     transfer.performCleanup(waitTimeout = False)
+
                 except Exception, ex:
                     logger.error("Exception during cleanup, reason: %s" % ex)
                 # check if the actual FDTCopy attribute exists - might have failed while creating it
