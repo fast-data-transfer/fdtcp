@@ -10,11 +10,13 @@ def identifyPythonVersion():
 PYTHON_LIB_PATH = identifyPythonVersion()
 
 setup(name='fdtcp',
-      version='0.8',
+      version='0.1',
       description='Fast Data Transfers daemon and third part copy tool',
       author='Justas Balcas',
       author_email='justas.balcas@cern.ch',
       url='https://github.com/juztas/fdtcp',
+      download_url = 'https://github.com/juztas/fdtcp/tarball/0.1',
+      keywords = ['FDT', 'fast', 'transfers', 'caltech', 'data']
       #packages=['fdtcp'],
       # package_dir = {'': 'src/python'},
       data_files=[('/etc/fdtcp/', ['conf/fdtcp.conf', 'conf/fdtd-system-conf.sh', 'conf/fdtd.conf']),
