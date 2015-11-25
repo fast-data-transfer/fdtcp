@@ -10,7 +10,7 @@ def identifyPythonVersion():
 PYTHON_LIB_PATH = identifyPythonVersion()
 
 setup(name='fdtcp',
-      version='0.11',
+      version='0.12',
       description='Fast Data Transfers daemon and third part copy tool',
       author='Justas Balcas',
       author_email='justas.balcas@cern.ch',
