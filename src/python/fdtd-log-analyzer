@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """"
-fdtcp project (aimed at integration of FDT and CMS PhEDEx)
+fdtcp project
 
 https://twiki.cern.ch/twiki/bin/view/Main/PhEDExFDTIntegration
 https://trac.hep.caltech.edu/trac/fdtcp
@@ -21,9 +21,6 @@ tasks / steps:
 7) search for 'Address already in use'
 8) not CleanupProcessesAction at the end
 9) analyze transfer performance at successful transfers
-
-__author__ = Zdenek Maxa
-
 """
 from __future__ import print_function
 

@@ -1,7 +1,9 @@
+""" TODO doc """
+
+
 class TimeoutException(Exception):
     """
     SIGALARM was sent to the process, interrupt current action.
-
     """
     pass
 

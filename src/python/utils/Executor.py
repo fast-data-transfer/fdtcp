@@ -4,41 +4,34 @@ Possibility to associate ID with the command (job) and username (running
 processes under arbitrary usernames).
 
 Handling standard output, standard error streams.
-
-__author__ = Zdenek Maxa
-
 """
 from builtins import object
 from builtins import str
 
 
 import datetime
-import os
 import subprocess
 import sys
 import tempfile
-import shutil
 import time
 import logging
-import socket
 import types
 
 from fdtcplib.utils.Logger import Logger
-from fdtcplib.utils.utils import getHostName
 
 
 class ExecutorException(Exception):
+    """ TODO doc """
     pass
 
 
 class Executor(object):
     """
     Executing external process.
-
     """
 
     def __init__(self,
-                 id,
+                 idE,
                  command,
                  blocking=False,
                  caller=None,
@@ -51,7 +44,7 @@ class Executor(object):
                  syncFlag=False,
                  logger=None):
         # id of the associated action / request
-        self.id = id
+        self.id = idE
         # actual command to execute in the process
         self.command = command
         # boolean flag - blocking / non-blocking process, in case of blocking,
@@ -114,6 +107,7 @@ class Executor(object):
         return "process PID: %s '%s' id:'%s'" % (pid, self.command, self.id)
 
     def _debugDetails(self, indent=4):
+        """ TODO doc """
         r = ""
         ind = ' ' * indent
         for k, v in list(list(self.__dict__.items())):
@@ -124,6 +118,7 @@ class Executor(object):
         return r
 
     def getLogs(self):
+        """ TODO doc """
         self.stdOut.seek(0)  # move pointer back to beginning before read()
         self.stdErr.seek(0)
         delim = 78 * '-'
@@ -138,7 +133,6 @@ class Executor(object):
     def _handleBlockingProcess(self):
         """
         Blocking scenario, e.g. FDT client party.
-
         """
         # add into container of running processes, should process hang
         # for ever on wait()
@@ -186,6 +180,7 @@ class Executor(object):
             raise ExecutorException(m)
 
     def _handleLogOutputWaiting(self):
+        """ TODO doc """
         startTime = datetime.datetime.now()
         while True:
             time.sleep(0.5)
@@ -258,6 +253,7 @@ class Executor(object):
             raise ExecutorException(m)
 
     def _prepareLogFiles(self):
+        """ TODO doc """
         # create tmp files for stdOut, stdErr of the process (w+ - read/write)
         self.stdOut = tempfile.TemporaryFile("w+")
         self.stdErr = tempfile.TemporaryFile("w+")
@@ -271,6 +267,7 @@ class Executor(object):
             return {}
 
     def execute(self):
+        """ TODO doc """
         logsConf = self._prepareLogFiles()
 
         self.logger.debug("Executing:\n%s" % self._debugDetails())

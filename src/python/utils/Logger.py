@@ -1,8 +1,5 @@
 """
 Wrapper class for logging module (standard Python module).
-
-__author__ = Zdenek Maxa
-
 """
 from builtins import range
 
@@ -17,7 +14,6 @@ import types
 class Logger(logging.getLoggerClass()):
     """
     Customised Logger. Logging either to console or into a file.
-
     """
 
     def __init__(self, name="Logger", logFile=None, level=logging.DEBUG):
@@ -27,7 +23,6 @@ class Logger(logging.getLoggerClass()):
         Check that level is int and one of the values from logging constants
         added, since passing e.g. str value "DEBUG" results into empty log
         file and disappearing log messages.
-
         """
         self.myName = name
         self.myLogFile = logFile
@@ -49,7 +44,7 @@ class Logger(logging.getLoggerClass()):
         self.setLevel(level)
 
         # %(name)-12s gives name as given here: name = "Logger"
-        #fs = "%(asctime)s %(name)-8s %(levelname)-9s %(message)s"
+        # fs = "%(asctime)s %(name)-8s %(levelname)-9s %(message)s"
         fs = "%(levelname)-9s %(asctime)s %(name)-8s %(message)s"
         self._myFormatter = logging.Formatter(fs)
 
@@ -78,7 +73,6 @@ class Logger(logging.getLoggerClass()):
     def _myLog(self, level, msg, traceBack=False):
         """
         Single entry-point method to emit the log message.
-
         """
         if traceBack:
             # get last exception traceback
@@ -109,6 +103,7 @@ class Logger(logging.getLoggerClass()):
         self.log(level, msg)
 
     def close(self):
+        """ TODO doc """
         # can't be put into __del__() - gives error (file already closed)
         self._myLog(logging.WARNING, "Logger closing.\n\n\n")
         if self._logFileHandler:
@@ -117,12 +112,12 @@ class Logger(logging.getLoggerClass()):
             self._logFileHandlerOpen = False
 
     def isOpen(self):
+        """ TODO doc """
         return self._logFileHandlerOpen
 
     def getTracebackSimple(self):
         """
         Returns formatted traceback of the most recent exception.
-
         """
         # sys.exc_info() most recent exception
         trace = traceback.format_exception(*sys.exc_info())
@@ -138,7 +133,6 @@ class Logger(logging.getLoggerClass()):
         Returns formatted traceback of the most recent exception.
         Could write into a file-like object (argument would be
         output = sys.stdout), now returns result in formatted string.
-
         """
         tbComplex = "".join([78 * '-', '\n'])
         tbComplex = "".join([tbComplex, "Problem: %s\n" % sys.exc_info()[1]])
@@ -183,45 +177,39 @@ class Logger(logging.getLoggerClass()):
         This method makes sure that all possible logging methods:
             warning, warn, fatal, error, debug, critical, info will be
             called via _myLog(self, level, msg)
-
         """
         pass
-        """
-        for met, level in (('warning',  logging.WARNING),
-                           ('warn',     logging.WARNING),
-                           ('fatal',    logging.FATAL),
-                           ('error',    logging.ERROR),
-                           ('debug',    loggign.DEBUG),
-                           ('critical', logging.CRITICAL),
-                           ('info',     logging.INFO)):
-        by using functools and partial evaluation it would be possible
-        to define all these methods dynamically, but functools are
-        only available in Python 2.5 and higher, for how has to be made
-        manually (below)
-        """
 
     def warning(self, msg):
+        """ Warning level """
         self._myLog(logging.WARNING, msg)
 
     def warn(self, msg):
+        """ Warning level """
         self._myLog(logging.WARNING, msg)
 
-    def fatal(self, msg, traceBack=False):
+    def fatal(self, msg, dummytraceBack=False):
+        """ FATAL level """
         self._myLog(logging.FATAL, msg)
 
     def error(self, msg, traceBack=False):
+        """ Error level """
         self._myLog(logging.ERROR, msg, traceBack=traceBack)
 
     def debug(self, msg, traceBack=False):
+        """ Debug level """
         self._myLog(logging.DEBUG, msg, traceBack=traceBack)
 
     def critical(self, msg, traceBack=False):
+        """ Critical level """
         self._myLog(logging.CRITICAL, msg, traceBack=traceBack)
 
     def info(self, msg):
+        """ Info level """
         self._myLog(logging.INFO, msg)
 
     def pprintFormat(self, obj):
+        """ print formar of obj """
         r = self.pp.pformat(obj)
         return r
 

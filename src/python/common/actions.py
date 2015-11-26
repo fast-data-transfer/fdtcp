@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 """
 Classes holding details of communication transmitted between fdtcp and fdtd.
 
@@ -11,27 +12,20 @@ Actions classes represent actions initiated from fdtcp, then shipped to
 Actions .execute() methods are called on the side of fdtd, so caller
     as well as the conf object are the one associated with the fdtd
     remote party and not with local fdtcp.
-
-__author__ = Zdenek Maxa
-
 """
 from __future__ import division
 from past.utils import old_div
 from builtins import str
 from builtins import object
-
-
 import os
 import time
-import random
-import types
 import datetime
 import psutil
 import re
 
 from fdtcplib.utils.Executor import Executor, ExecutorException
 from fdtcplib.utils.utils import getHostName, getDateTime
-from fdtcplib.utils.utils import getRandomString, getUserName
+from fdtcplib.utils.utils import getRandomString
 from fdtcplib.common.errors import FDTDException, FDTCopyException
 
 
@@ -42,13 +36,14 @@ class CarrierBase(object):
 
     """
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, idc):
+        self.id = idc
 
     def __str__(self):
         return self._debugDetails(self.__dict__)
 
     def _debugDetails(self, inputDict, indent=4):
+        """ TODO doc """
         r = ""
         ind = ' ' * indent
         for k, v in list(list(inputDict.items())):
@@ -78,11 +73,12 @@ class Action(CarrierBase):
 
     """
 
-    def __init__(self, id, timeout=None):
-        CarrierBase.__init__(self, id)
+    def __init__(self, idA, timeout=None):
+        CarrierBase.__init__(self, idA)
         self.timeout = timeout
 
     def execute(self):
+        """ TODO doc """
         m = "Base class (abstract), no implementation execute()"
         raise NotImplementedError(m)
 
@@ -94,12 +90,11 @@ class TestAction(Action):
     This is the first communication between fdtcp and fdtd,
     id is generated here and used throughout the whole transfer process.
     Only timeout can be configurable for this type of action.
-
     """
 
     def __init__(self, srcHostName, dstHostName, timeout=None):
-        id = self._getId(srcHostName, dstHostName)
-        Action.__init__(self, id, timeout)
+        idT = self._getId(srcHostName, dstHostName)
+        Action.__init__(self, idT, timeout)
 
     def _getId(self, srcHostName, dstHostName):
         """
@@ -109,36 +104,39 @@ class TestAction(Action):
         job, esp. by MonALISA ApMon.
         Transfers at fdtd will be associated with this ID - make it as
         unique as possible to avoid collisions.
-
         """
         h = getHostName()
-        #u = getUserName()
+        # u = getUserName()
         dt = getDateTime()
         r = getRandomString('a', 'z', 5)
         template = "fdtcp-%(host)s--%(source)s-to-%(dest)s--%(datetime)s-%(randomStr)s"
         d = dict(host=h, source=srcHostName, dest=dstHostName,
                  datetime=dt, randomStr=r)
-        id = template % d
-        return id
+        idT = template % d
+        return idT
 
     def execute(self, **kwargs):
+        del kwargs
         r = Result(self.id)
         r.status = 0
         return r
 
 
 class ReceivingServerAction(Action):
+    """ TODO doc """
 
-    def __init__(self, id, options):
+    def __init__(self, idR, options):
         """
         Instance of this class is created by fdtcp and some parameters are
         passed (options), options is a dictionary.
 
         """
-        Action.__init__(self, id)
+        Action.__init__(self, idR)
         self.options = options
+        self.command = None
 
     def _setUp(self, conf, port):
+        """ TODO doc """
         # separate method for testing purposes, basically sets up command
         self.options["sudouser"] = self.options["gridUserDest"]
         self.options["port"] = port
@@ -154,7 +152,6 @@ class ReceivingServerAction(Action):
         Check all the paths in the supplied list and log whether the files
         as well as the dotName form of the files exist.
         The intention is to help debug HDFS AlreadyBeingCreatedException
-
         """
         r = ""
         ind = ' ' * 4
@@ -172,7 +169,6 @@ class ReceivingServerAction(Action):
         Check if "Address already in use" error occurred and if so
         try to find out which process has the port.
         Problem #38
-
         """
         errMsg = "Address already in use"
         logger.debug("Checking for '%s' error message (port: %s) ... " %
@@ -212,9 +208,7 @@ class ReceivingServerAction(Action):
                         logger.debug(m)
                         found = True
                 except AttributeError as er:
-                    logger.debug(
-                        "Got unnexpected attribute error. %s" % str(
-                            conn[0]))
+                    logger.debug("Got unnexpected attribute error. %s %s" % (conn[0], er))
                     continue
             if found:
                 break
@@ -227,7 +221,6 @@ class ReceivingServerAction(Action):
         This method is is called on the remote site where fdtd runs - here
         are also known all configuration details, thus final set up has to
         happen here.
-
         """
         startTime = datetime.datetime.now()
         # may fail with subset of FDTDException which will be propagated
@@ -288,16 +281,14 @@ class AuthServiceAction(Action):
     Client (fdtcp) will issue this action in order to obtain port on
     which AuthService runs, then fdtcp starts AuthClient to
     perform authentication.
-
     """
 
-    def __init__(self, id):
-        Action.__init__(self, id)
+    def __init__(self, idA):
+        Action.__init__(self, idA)
 
-    def execute(self, conf=None, caller=None, apMon=None, logger=None):
+    def execute(self, conf=None, dummycaller=None, dummyapMon=None, logger=None):
         """
         This method is is called on the remote site where fdtd runs.
-
         """
         r = Result(self.id)
         r.status = 0
@@ -308,27 +299,29 @@ class AuthServiceAction(Action):
 
 
 class SendingClientAction(Action):
+    """ TODO doc """
 
-    def __init__(self, id, options):
+    def __init__(self, idS, options):
         """
         Instance of this class is created by fdtcp and some parameters are
         passed (options), options is a dictionary.
-
         """
-        Action.__init__(self, id)
+        Action.__init__(self, idS)
         self.options = options
+        self.command = None
 
     def _setUp(self, conf):
+        """ TODO doc """
         # generate FDT fileList, put it into the same location as log file
         if conf.get("logFile"):
             logDir = os.path.dirname(conf.get("logFile"))
         else:
             logDir = "/tmp"
-        dir = os.path.join(logDir, "fileLists")
-        fileListName = os.path.join(dir, "fdt-fileList-%s" % self.id)
+        directory = os.path.join(logDir, "fileLists")
+        fileListName = os.path.join(directory, "fdt-fileList-%s" % self.id)
         try:
-            if not os.path.exists(dir):
-                os.mkdir(dir)
+            if not os.path.exists(directory):
+                os.mkdir(directory)
             fileList = open(fileListName, 'w')
         except IOError as ex:
             m = ("Could not create FDT client fileList file %s, "
@@ -347,13 +340,12 @@ class SendingClientAction(Action):
 
         self.command = conf.get("fdtSendingClientCommand") % newOptions
 
-    def execute(self, conf=None, caller=None, apMon=None, logger=None):
+    def execute(self, conf=None, caller=None, dummyapMon=None, logger=None):
         """
         This method is invoked by fdtd once the action object is received
         from remote fdtcp (where the action instance was created). Options
         known on fdtd are set on the action instance (e.g. finalizing command
         for invoking FDT Java - location of fdt.jar is known only at fdtd site).
-
         """
         # this method is called on PYRO service side, user its logger
         # from now on
@@ -406,14 +398,15 @@ class AuthClientAction(Action):
     (fileNameToStoreRemoteUserName) and execute method reads it in
     and forwards this remote Grid user name to local caller (fdtcp)
     and deletes the file.
-
     """
 
-    def __init__(self, id, options):
-        Action.__init__(self, id)
+    def __init__(self, idA, options):
+        Action.__init__(self, idA)
         self.options = options
+        self.command = None
 
     def _setUp(self, conf, fileNameToStoreRemoteUserName):
+        """ TODO doc """
         # separate method for testing purposes
         self.options["fileNameToStoreRemoteUserName"] = \
             fileNameToStoreRemoteUserName
@@ -421,7 +414,7 @@ class AuthClientAction(Action):
         self.options["x509userproxy"] = conf.get("x509userproxy")
         self.command = conf.get("authClientCommand") % self.options
 
-    def execute(self, conf=None, caller=None, apMon=None, logger=None):
+    def execute(self, conf=None, dummycaller=None, dummyapMon=None, logger=None):
         """This method is invoked by fdtcp (locally)."""
         # fileNameToStoreRemoteUserName - file into which AuthClient
         # stores name of the Grid user at the remote party, this
@@ -457,8 +450,9 @@ class AuthClientAction(Action):
 
 
 class CleanupProcessesAction(Action):
+    """ TODO doc """
 
-    def __init__(self, id, timeout=None, waitTimeout=True):
+    def __init__(self, idC, timeout=None, waitTimeout=True):
         """
         id is mandatory - associated with previous actions.
         waitTimeout controls waiting for timeout interval before killing the
@@ -470,10 +464,10 @@ class CleanupProcessesAction(Action):
             waitTimeout has entirely different purpose from Action.timeout.
 
         """
-        Action.__init__(self, id, timeout)
+        Action.__init__(self, idC, timeout)
         self.waitTimeout = waitTimeout
 
-    def execute(self, conf=None, caller=None, apMon=None, logger=None):
+    def execute(self, dummyconf=None, caller=None, dummyapMon=None, logger=None):
         """
         all these parameters defined here and not at the
         constructor: execute()
@@ -509,14 +503,15 @@ class CleanupProcessesAction(Action):
 
 
 class Result(CarrierBase):
+    """ TODO doc """
 
-    def __init__(self, id):
+    def __init__(self, idR):
         """
         Result object always, id associated with previously
         launched action.
 
         """
-        CarrierBase.__init__(self, id)
+        CarrierBase.__init__(self, idR)
         self.log = None
         self.msg = None
         self.status = None

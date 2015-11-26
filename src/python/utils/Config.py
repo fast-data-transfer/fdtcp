@@ -8,20 +8,15 @@ The Config class handles configuration based on a configuration file
 while defined command line options override values from the config file.
 
 Instance of Config is a store of application's configuration values.
-
-__author__ = Zdenek Maxa
-
 """
+import os
+import logging
+from configparser import RawConfigParser
+from optparse import OptionParser, TitledHelpFormatter
+
 from builtins import object
 from future import standard_library
 standard_library.install_aliases()
-
-
-import os
-import logging
-import types
-from configparser import RawConfigParser
-from optparse import OptionParser, TitledHelpFormatter
 
 
 class ConfigurationException(Exception):
@@ -63,6 +58,7 @@ class Config(object):
         self._processConfigFile(configFileLocations)
 
     def _parseConfigFile(self, fileName):
+        """ TODO doc """
         if not os.path.exists(fileName):
             raise ConfigurationException("Config file %s does not exist." %
                                          fileName)
@@ -137,11 +133,14 @@ class Config(object):
             self._parseConfigFile(name)
 
     def processCommandLineOptions(self, args):
+        """ TODO doc """
+        del args
         m = ("processCommandLineOptions() not implemented, Config must be "
              "subclassed.")
         raise NotImplementedError(m)
 
     def get(self, what):
+        """ TODO doc """
         r = self._options.get(what, None)
         # if not defined - return None
         return r
@@ -150,7 +149,6 @@ class Config(object):
         """
         Checks that all mandatory configuration values are present and
         have sensible values.
-
         """
         # convert integer values to integers
         for opt in self._mandatoryInt:
