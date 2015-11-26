@@ -4,6 +4,8 @@ Executor module. Simulates many concurrent requests for daemon / service
 start up (FDT Java).
 
 """
+from builtins import object
+from builtins import range
 
 
 import time
@@ -25,7 +27,7 @@ class FDTService(object):
     def __init__(self, logger):
         self.logger = logger
         portMin, portMax = [int(i) for i in self.reserved.split(',')]
-        self.portRange = range(portMin, portMax + 1)
+        self.portRange = list(list(range(portMin, portMax + 1)))
         # will be secured by lock, mutual access to port
         # reservation / releasing
         self.portsTaken = set()

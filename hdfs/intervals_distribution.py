@@ -18,6 +18,11 @@ AlreadyBeingCreated-timestamps - just timestamps extracted
 
 """
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
+from builtins import range
+from builtins import object
 
 
 import time
@@ -59,7 +64,7 @@ class PlotData(object):
 # make bins of BIN_SIZE up ENTIRE_PERIOD
 pd = PlotData()
 for i in range(BIN_SIZE, ENTIRE_PERIOD, BIN_SIZE):
-    hour = i / 60
+    hour = old_div(i, 60)
     min = i - (hour * 60)
     t = datetime.time(hour, min)
     pd.timeBins.append(t)
@@ -97,7 +102,7 @@ for dt in open("AlreadyBeingCreated-timestamps", 'r'):
         calc = abs(deltaMin - pd.x[i])
         # "deltaMin in range(4/2)" makes the first bin since the subtraction
         # will still be larger than the half size of the bin ...
-        if calc <= BIN_SIZE / 2 or deltaMin in range(BIN_SIZE / 2):
+        if calc <= old_div(BIN_SIZE, 2) or deltaMin in range(old_div(BIN_SIZE, 2)):
             pd.y[i] += 1
             #print ("%s falls into %s (occup:%s)" % (delta, pd.x[i], pd.y[i]))
             break

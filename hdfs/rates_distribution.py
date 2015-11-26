@@ -11,6 +11,10 @@ transfer log file.
 
 """
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
+from builtins import object
 
 
 import sys
@@ -60,7 +64,7 @@ pd = PlotData()
 ma = max(ratesList)
 mi = min(ratesList)
 print("min value: %s max value: %s" % (mi, ma))
-binSize = (ma - mi) / float(NUM_BINS)
+binSize = old_div((ma - mi), float(NUM_BINS))
 currBin = mi
 c = 0
 while currBin < ma:

@@ -5,6 +5,7 @@
     python create_copyjobfiles.py
 """
 from __future__ import print_function
+from builtins import range
 
 # number of tests are iterated from 1
 NUMTESTS = 10

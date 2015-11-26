@@ -4,6 +4,7 @@ py.test unittest testsuite for the Config module.
 __author__ = Zdenek Maxa
 
 """
+from builtins import str
 
 
 import os

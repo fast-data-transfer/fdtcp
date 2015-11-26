@@ -3,6 +3,9 @@ Generate data files used in transfer tests.
 
 """
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 
 import os
 
@@ -21,7 +24,7 @@ size = 1024 * 1024 * 1024 * sizeGB  # sizeGB GB
 # ---------------------------------------------------------------------------
 
 _blockSize = 1024
-_count = size / _blockSize
+_count = old_div(size, _blockSize)
 
 _command = "dd if=/dev/zero of=./%(sizeGB)sGB-%(counter)s.test bs=%(blockSize)s count=%(count)s"
 

@@ -11,6 +11,7 @@
   $FDTCP_HOME/authenticator/wrapper_auth.sh -DX509_CERT_DIR=$X509_CERT_DIR -DX509_SERVICE_KEY=$X509_SERVICE_KEY -DX509_SERVICE_CERT=$X509_SERVICE_CERT -DGRIDMAP=$GRIDMAPFILE -cp $GSILIBS:$FDTJAR:$AUTHSERVICEJAR authenticator.AuthService -p 9000 2>&1 | tee authservice.log
 """
 from __future__ import print_function
+from builtins import range
 
 # number of tests are iterated from 1
 NUMTESTS = 100

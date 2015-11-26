@@ -1,4 +1,11 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import object
+from builtins import range
+from past.utils import old_div
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 # code saved for future reference
 # code taken from COMP stuff within CMSSW
 # esp. grid - authentication stuff
@@ -89,7 +96,7 @@ def executeCommand(command, timeout=None):
 # minor modifications: import -> used executeCommand functions
 import os
 import sys
-import commands
+import subprocess
 import traceback
 import time
 import re
@@ -101,7 +108,7 @@ except:
     from sha import sha as sha1
 
 
-class Proxy:
+class Proxy(object):
     """
     basic class to handle user Token
     """
@@ -218,11 +225,11 @@ class Proxy:
         """
         """
         if abs(ProxyLife - VomsLife) > 900:
-            h = int(ProxyLife) / 3600
-            m = (int(ProxyLife) - h * 3600) / 60
+            h = old_div(int(ProxyLife), 3600)
+            m = old_div((int(ProxyLife) - h * 3600), 60)
             proxyLife = "%d:%02d" % (h, m)
-            h = int(VomsLife) / 3600
-            m = (int(VomsLife) - h * 3600) / 60
+            h = old_div(int(VomsLife), 3600)
+            m = old_div((int(VomsLife) - h * 3600), 60)
             vomsLife = "%d:%02d" % (h, m)
             msg = "proxy lifetime %s is different from voms extension lifetime%s for proxy %s\n CRAB will ask ask you create a new proxy" % (
                 proxyLife, vomsLife, proxy)
@@ -415,7 +422,7 @@ class Proxy:
 
                 # clean up expired credentials for other servers
                 cleanCredCmdList = []
-                for credIdx in xrange(len(credNameList)):
+                for credIdx in range(len(credNameList)):
                     hours, minutes, seconds = credTimeleftList[credIdx]
                     timeleft = int(hours) * 3600 + \
                         int(minutes) * 60 + int(seconds)
@@ -594,8 +601,8 @@ class Proxy:
             # fake value, it would fail in any case
             vomsValid = "12:00"
         else:
-            vomsValid = "%d:%02d" % (timeLeft / 3600,
-                                     (timeLeft - (timeLeft / 3600) * 3600) / 60)
+            vomsValid = "%d:%02d" % (old_div(timeLeft, 3600),
+                                     old_div((timeLeft - (old_div(timeLeft, 3600)) * 3600), 60))
 
         self.logging.debug('Requested voms validity: %s' % vomsValid)
 
@@ -698,7 +705,7 @@ class GridMapChecker(object):
                 subject_name_list = subject.split("/")
                 subject_name_list.pop()
                 subject_name_list.pop(0)
-                new_subject_list = map(lambda x: "/" + x, subject_name_list)
+                new_subject_list = ["/" + x for x in subject_name_list]
                 subject = "".join(new_subject_list)
                 if subject in self.gridMap:
                     break

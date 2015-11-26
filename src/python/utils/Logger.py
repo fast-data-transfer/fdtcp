@@ -4,6 +4,7 @@ Wrapper class for logging module (standard Python module).
 __author__ = Zdenek Maxa
 
 """
+from builtins import range
 
 import sys
 import traceback

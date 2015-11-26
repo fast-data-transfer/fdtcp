@@ -8,6 +8,8 @@ Handling standard output, standard error streams.
 __author__ = Zdenek Maxa
 
 """
+from builtins import object
+from builtins import str
 
 
 import datetime
@@ -114,7 +116,7 @@ class Executor(object):
     def _debugDetails(self, indent=4):
         r = ""
         ind = ' ' * indent
-        for k, v in self.__dict__.items():
+        for k, v in list(list(self.__dict__.items())):
             # not interested in methods
             if isinstance(v, types.MethodType):
                 continue

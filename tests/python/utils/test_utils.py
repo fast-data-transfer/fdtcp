@@ -4,6 +4,7 @@ py.test unittest testsuite for the utils module - set of helper routines.
 __author__ = Zdenek Maxa
 
 """
+from builtins import range
 
 
 import os

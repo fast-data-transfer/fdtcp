@@ -15,6 +15,10 @@ Actions .execute() methods are called on the side of fdtd, so caller
 __author__ = Zdenek Maxa
 
 """
+from __future__ import division
+from past.utils import old_div
+from builtins import str
+from builtins import object
 
 
 import os
@@ -47,7 +51,7 @@ class CarrierBase(object):
     def _debugDetails(self, inputDict, indent=4):
         r = ""
         ind = ' ' * indent
-        for k, v in inputDict.items():
+        for k, v in list(list(inputDict.items())):
             if isinstance(v, dict):
                 # do indent twice as much
                 recurResult = self._debugDetails(v, indent=8)
@@ -215,7 +219,7 @@ class ReceivingServerAction(Action):
             if found:
                 break
         endTime = datetime.datetime.now()
-        elapsed = ((endTime - startTime).microseconds) / 1000
+        elapsed = old_div(((endTime - startTime).microseconds), 1000)
         logger.debug("Process checking is over, took %s ms." % elapsed)
 
     def execute(self, conf=None, caller=None, apMon=None, logger=None):

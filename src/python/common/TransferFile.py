@@ -5,6 +5,7 @@ Has to be in a location easily accessible for both PYRO client and service.
 __author__ = Zdenek Maxa
 
 """
+from builtins import object
 
 
 class TransferFile(object):

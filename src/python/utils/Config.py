@@ -12,12 +12,15 @@ Instance of Config is a store of application's configuration values.
 __author__ = Zdenek Maxa
 
 """
+from builtins import object
+from future import standard_library
+standard_library.install_aliases()
 
 
 import os
 import logging
 import types
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 from optparse import OptionParser, TitledHelpFormatter
 
 

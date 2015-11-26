@@ -12,6 +12,9 @@ __author__ = Zdenek Maxa
 
 """
 from __future__ import print_function
+from builtins import zip
+from builtins import range
+from builtins import object
 
 
 import os
@@ -400,7 +403,7 @@ def testFDTDWaitingTimeoutWhenCleanup():
          wait-to-finish timeouts
 
     """
-    class Handler:
+    class Handler(object):
 
         def __init__(self, flag, testName):
             self.flag = flag
@@ -468,7 +471,7 @@ def testFDTDNotWaitingTimeoutWhenCleanupForced():
          wait-to-finish timeouts
 
     """
-    class Handler:
+    class Handler(object):
 
         def __init__(self, flag, testName):
             self.flag = flag
@@ -705,7 +708,7 @@ def testFDTDPortReservation():
     # existing port, but hasn't been reserved before
     py.test.raises(PortReservationException, portMgmt.release, 54321)
 
-    for portInput, index in zip(range(54321, 54330 + 1), range(11)):
+    for portInput, index in zip(list(list(range(54321, 54330 + 1))), list(list(range(11)))):
         p = portMgmt.reserve()
         assert p == portInput
         assert portMgmt._numTakenPorts == index + 1
@@ -715,12 +718,12 @@ def testFDTDPortReservation():
     py.test.raises(PortReservationException, portMgmt.reserve)
     py.test.raises(PortReservationException, portMgmt.release, 1000)
 
-    for port, index in zip(range(54321, 54326), range(6)):
+    for port, index in zip(list(list(range(54321, 54326))), list(list(range(6)))):
         portMgmt.release(port)
         assert portMgmt._ports[index]._reservedTimes == 1
         assert portMgmt._ports[index]._reservedNow == False
 
-    for port, index in zip(range(54321, 54325), range(5)):
+    for port, index in zip(list(list(range(54321, 54325))), list(list(range(5)))):
         p = portMgmt.reserve()
         assert p == port
         assert portMgmt._ports[index]._reservedTimes == 2

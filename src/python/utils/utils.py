@@ -4,6 +4,8 @@ Helper routines.
 __author__ = Zdenek Maxa
 
 """
+from builtins import chr
+from builtins import range
 
 
 import os

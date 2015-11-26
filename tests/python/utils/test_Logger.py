@@ -5,6 +5,8 @@ __author__ = Zdenek Maxa
 
 """
 from __future__ import print_function
+from __future__ import division
+from past.utils import old_div
 
 
 import os
@@ -71,7 +73,7 @@ def testLoggerWrongLevelOption():
 def testTracebackSimple():
     logger = Logger("test logger", level=logging.DEBUG)
     try:
-        1 / 0
+        old_div(1, 0)
     except Exception:
         logger.getTracebackSimple()
         logger.error("exception", traceBack=True)
@@ -82,7 +84,7 @@ def testTracebackSimple():
 def testTracebackComplex():
     logger = Logger("test logger", level=logging.DEBUG)
     try:
-        1 / 0
+        old_div(1, 0)
     except Exception:
         logger.getTracebackComplex()
     logger.close()

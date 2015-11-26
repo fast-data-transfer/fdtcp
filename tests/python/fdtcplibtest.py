@@ -8,6 +8,7 @@ __author__ = Zdenek Maxa
 
 """
 from __future__ import print_function
+from builtins import str
 
 
 import os
@@ -403,7 +404,7 @@ def testFdtcpSignalHandling(files, ports, testName=None):
     # catch whatever exception so that fdtd is definitely stopped at the end
     try:
         try:
-            for transfer in transfers.transfers.values():
+            for transfer in list(transfers.transfers.values()):
                 # transfer.performTransfer() - can't do this - will fail on
                 #    1) authentication
                 testAction = TestAction(host, host, 1)
@@ -548,7 +549,7 @@ def testFdtcpKilledBySignalCorrectTransfers(ports, testName=None):
     # catch whatever exceptions
     try:
         try:
-            for transfer in transfers.transfers.values():
+            for transfer in list(transfers.transfers.values()):
                 # transfer.performTransfer() - can't do this - will fail on
                 #    1) authentication
                 testAction = TestAction(host, host, 1)
@@ -674,7 +675,7 @@ def testFdtdShutdownForced(files, ports, testName=None):
     # catch whatever exception so that fdtd is definitely stopped at the end
     try:
         try:
-            for transfer in transfers.transfers.values():
+            for transfer in list(transfers.transfers.values()):
                 # transfer.performTransfer() - can't do this - will fail on
                 #    1) authentication
                 testAction = TestAction(host, host, timeout=1)
@@ -828,7 +829,7 @@ def testfdtcpFdt(files, port=8000, testName=None):
     # catch whatever exception so that fdtd is definitely stopped at the end
     try:
         try:
-            for transfer in transfers.transfers.values():
+            for transfer in list(transfers.transfers.values()):
                 # transfer.performTransfer() - can't do this - will fail on
                 #    1) authentication
                 #    2) on transfer id (FDT Java app) already registered

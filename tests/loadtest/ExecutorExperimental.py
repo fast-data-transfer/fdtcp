@@ -12,6 +12,7 @@ This is a load-test helper script used for development / testing of the
 Executor
 
 """
+from builtins import object
 
 
 import datetime
