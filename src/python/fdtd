@@ -407,14 +407,14 @@ class FDTD(object):
         """
         logger.debug("Processing clean up / process kill request for "
                      "transfer id '%s' ..." % idE)
-        if id in self._executors:
+        if idE in self._executors:
             executor = self._executors[idE]
             m = self._killProcess(executor, logger, waitTimeout=waitTimeout)
             logger.info(m)
             self.removeExecutor(executor)
         else:
             m = ("No such process/action id '%s' in executors "
-                 "containers." % id)
+                 "containers." % idE)
             logger.error(m)
         return m
 
