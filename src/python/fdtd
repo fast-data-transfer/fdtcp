@@ -494,7 +494,7 @@ class FDTD(object):
                 opt = dict(pid=e.proc.pid)
                 command = self.conf.get("killCommand") % opt
 
-            killExec = Executor(e.id,
+            killExec = Executor(e.id+1,
                                 command,
                                 blocking=True,
                                 logger=logger)
