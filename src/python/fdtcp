@@ -615,6 +615,8 @@ def main():
                     # these conditions, do not let fdtd wait timeout period until
                     # the processes may finish on their own
                     transfer.performCleanup(waitTimeout=False)
+                except IOError as er:
+                    logger.error("Got IOError")
                 #except Exception, ex:
                 #    logger.error("Exception during cleanup, reason: %s" % ex)
                 # check if the actual FDTCopy attribute exists - might have failed while creating it

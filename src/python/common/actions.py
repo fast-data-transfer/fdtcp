@@ -359,7 +359,7 @@ class SendingClientAction(Action):
                             caller=caller,
                             userName=localGridUser,
                             killTimeout=killTimeout,
-                            syncFlag=True,
+                            syncFlag=False,
                             logger=logger)
         try:
             try:
