@@ -75,7 +75,7 @@ class Action(CarrierBase):
         CarrierBase.__init__(self, idA)
         self.timeout = timeout
 
-    def execute(self):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """ TODO doc """
         m = "Base class (abstract), no implementation execute()"
         raise NotImplementedError(m)

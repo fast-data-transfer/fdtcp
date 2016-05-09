@@ -329,8 +329,8 @@ class Transfer(object):
             # have to be specific about exceptions here, shall exhaust the whole list though
             # likely FDTDException may happen here and is translated into FDTCopyException
             # above
-            except Exception as ex:
-                self.logger.error("Unspecified exception during clean up: %s" % ex)
+            #except Exception as ex:
+            #    self.logger.error("Unspecified exception during clean up: %s" % ex)
 
             fdtCopy.proxy._release()
             self.toCleanup.pop()  # reverse, then pop the last item, iterating from the end...
@@ -528,8 +528,8 @@ def main():
     logger.debug("PYRO_STORAGE: '%s'" % os.environ.get("PYRO_STORAGE"))
 
     logger.debug("Input command line arguments: '%s'" % optBackup)
-    logger.debug("Configuration values (processed):\n%s\n" %
-                 logger.pprintFormat(conf.options))
+    #logger.debug("Configuration values (processed):\n%s\n" %
+    #             logger.pprintFormat(conf.options))
 
     apMon = None
     apMonDestConf = conf.get("apMonDestinations")
@@ -615,8 +615,8 @@ def main():
                     # these conditions, do not let fdtd wait timeout period until
                     # the processes may finish on their own
                     transfer.performCleanup(waitTimeout=False)
-                except Exception, ex:
-                    logger.error("Exception during cleanup, reason: %s" % ex)
+                #except Exception, ex:
+                #    logger.error("Exception during cleanup, reason: %s" % ex)
                 # check if the actual FDTCopy attribute exists - might have failed while creating it
                 if transfer.sender:
                     transfer.sender.proxy._release()

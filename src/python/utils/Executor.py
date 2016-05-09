@@ -263,7 +263,7 @@ class Executor(object):
             self.stdErr.write(m)
             return {}
 
-    def execute(self):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """ TODO doc """
         logsConf = self._prepareLogFiles()
 
