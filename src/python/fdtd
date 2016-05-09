@@ -488,13 +488,13 @@ class FDTD(object):
             # SIGTERM doesn't stop properly all client threads in
             # AuthService GSIBaseServer, have to use brute force SIGKILL
             if e.userName:
-                opt = dict(pid=e.proc.pid, sudouser=e.userName)
+                opt = dict(pid=int(e.proc.pid+1), sudouser=e.userName)
                 command = self.conf.get("killCommandSudo") % opt
             else:
-                opt = dict(pid=e.proc.pid)
+                opt = dict(pid=int(e.proc.pid+1))
                 command = self.conf.get("killCommand") % opt
 
-            killExec = Executor(e.id+1,
+            killExec = Executor(e.id,
                                 command,
                                 blocking=True,
                                 logger=logger)
