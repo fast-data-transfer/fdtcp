@@ -15,8 +15,6 @@ Actions .execute() methods are called on the side of fdtd, so caller
 """
 from __future__ import division
 from past.utils import old_div
-from builtins import str
-from builtins import object
 import os
 import time
 import datetime

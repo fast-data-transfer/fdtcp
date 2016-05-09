@@ -1,7 +1,6 @@
 """
 Wrapper class for logging module (standard Python module).
 """
-from builtins import range
 
 import sys
 import traceback

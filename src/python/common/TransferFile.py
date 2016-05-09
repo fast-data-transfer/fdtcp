@@ -2,7 +2,6 @@
 Single item of a transfer procedure - transferred file.
 Has to be in a location easily accessible for both PYRO client and service.
 """
-from builtins import object
 
 
 class TransferFile(object):

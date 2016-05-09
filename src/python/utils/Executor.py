@@ -5,9 +5,6 @@ processes under arbitrary usernames).
 
 Handling standard output, standard error streams.
 """
-from builtins import object
-from builtins import str
-
 
 import datetime
 import subprocess
