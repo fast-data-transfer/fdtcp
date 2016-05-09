@@ -284,7 +284,7 @@ class AuthServiceAction(Action):
     def __init__(self, idA):
         Action.__init__(self, idA)
 
-    def execute(self, conf=None, dummycaller=None, dummyapMon=None, logger=None):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """
         This method is is called on the remote site where fdtd runs.
         """
@@ -338,7 +338,7 @@ class SendingClientAction(Action):
 
         self.command = conf.get("fdtSendingClientCommand") % newOptions
 
-    def execute(self, conf=None, caller=None, dummyapMon=None, logger=None):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """
         This method is invoked by fdtd once the action object is received
         from remote fdtcp (where the action instance was created). Options
@@ -412,7 +412,7 @@ class AuthClientAction(Action):
         self.options["x509userproxy"] = conf.get("x509userproxy")
         self.command = conf.get("authClientCommand") % self.options
 
-    def execute(self, conf=None, dummycaller=None, dummyapMon=None, logger=None):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """This method is invoked by fdtcp (locally)."""
         # fileNameToStoreRemoteUserName - file into which AuthClient
         # stores name of the Grid user at the remote party, this
@@ -465,7 +465,7 @@ class CleanupProcessesAction(Action):
         Action.__init__(self, idC, timeout)
         self.waitTimeout = waitTimeout
 
-    def execute(self, dummyconf=None, caller=None, dummyapMon=None, logger=None):
+    def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """
         all these parameters defined here and not at the
         constructor: execute()
