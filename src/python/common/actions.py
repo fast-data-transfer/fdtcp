@@ -24,7 +24,7 @@ import re
 from fdtcplib.utils.Executor import Executor, ExecutorException
 from fdtcplib.utils.utils import getHostName, getDateTime
 from fdtcplib.utils.utils import getRandomString
-from fdtcplib.common.errors import FDTDException, FDTCopyException
+from fdtcplib.common.errors import FDTDException, FDTCopyException, PortInUseException
 
 
 class CarrierBase(object):
@@ -168,7 +168,7 @@ class ReceivingServerAction(Action):
         """
         Check if "Address already in use" error occurred and if so
         try to find out which process has the port.
-        Problem #38
+        Also return what to raise.
         """
         errMsg = "Address already in use"
         logger.debug("Checking for '%s' error message (port: %s) ... " %
@@ -177,7 +177,7 @@ class ReceivingServerAction(Action):
         match = addressUsedObj.search(exMsg)
         if not match:
             logger.debug("Error message '%s' not found, different failure.")
-            return
+            return FDTDException, exMsg
         logger.debug("'%s' problem detected, analyzing running "
                      "processes ..." % errMsg)
         startTime = datetime.datetime.now()
@@ -206,15 +206,17 @@ class ReceivingServerAction(Action):
                              "(user: %s, cmdline: %s)" %
                              (pid, port, proc.username(), " ".join(proc.cmdline)))
                         logger.debug(m)
+                        exMsg += m
                         found = True
                 except AttributeError as er:
                     logger.debug("Got unnexpected attribute error. %s %s" % (conn, er))
                     continue
             if found:
-                break
+                return PortInUseException, exMsg
         endTime = datetime.datetime.now()
         elapsed = old_div(((endTime - startTime).microseconds), 1000)
         logger.debug("Process checking is over, took %s ms." % elapsed)
+        return FDTDException, exMsg
 
     def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """
@@ -258,11 +260,11 @@ class ReceivingServerAction(Action):
         # Executor.execute() the instance is in the container and shall
         # be handled by CleanupProcessesAction
         except Exception as ex:
+            raiser, ex = self._checkForAddressAlreadyInUseError(str(ex), port, logger)
             m = ("Could not start FDT server on %s port: %s, reason: %s" %
                  (getHostName(), port, ex))
             logger.critical(m, traceBack=True)
-            self._checkForAddressAlreadyInUseError(str(ex), port, logger)
-            raise FDTDException(m)
+            raise raiser(m)
         else:
             r = Result(self.id)
             r.status = 0

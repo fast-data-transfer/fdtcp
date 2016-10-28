@@ -345,6 +345,7 @@ class Transfer(object):
         self.logger.debug("Clean up lasted: %s [s]." % cleanupTime)
         if self.apMon:
             self.logger.debug("Sending data to ApMon ...")
+            self.logger.info(par)
             self.apMon.sendParameters("fdtcp", None, par)
 
 

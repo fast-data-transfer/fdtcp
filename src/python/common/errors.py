@@ -43,6 +43,12 @@ class PortReservationException(FDTDException):
     """
     pass
 
+class PortInUseException(FDTDException):
+    """
+    No port is available to be reserved, request has be to rejected.
+    """
+    pass
+
 
 class AuthServiceException(FDTDException):
     """
