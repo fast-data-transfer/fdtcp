@@ -138,7 +138,8 @@ class ReceivingServerAction(Action):
         # separate method for testing purposes, basically sets up command
         self.options["sudouser"] = self.options["gridUserDest"]
         self.options["port"] = port
-        self.options["monID"] = self.id
+        if 'monID' not in self.options:
+            self.options["monID"] = self.id
         newOptions = self.options
         if self.options['circuitClientIP'] and self.options['circuitServerIP']:
             newOptions['clientIP'] = self.options['circuitClientIP']
@@ -222,7 +223,15 @@ class ReceivingServerAction(Action):
         """
         startTime = datetime.datetime.now()
         # may fail with subset of FDTDException which will be propagated
-        port = caller.getFreePort()
+        logger.info("All conf %s" % conf)
+        logger.info("AllOptions: %s" % self.options)
+        port = None
+        if 'portServer' in self.options:
+            logger.info("Forcing to use user specified port %s" % self.options['portServer'])
+            port = self.options['portServer']
+        else:
+            logger.info("Try to get a free port")
+            port = caller.getFreePort()
         self._setUp(conf, port)
         destFiles = self.options["destFiles"]
         logger.info("%s - checking presence of files at target "
@@ -331,7 +340,8 @@ class SendingClientAction(Action):
             fileList.write("%s\n" % f)
         fileList.close()
         self.options["fileList"] = fileListName
-        self.options["monID"] = self.id
+        if 'monID' not in self.options:
+            self.options["monID"] = self.id
         newOptions = self.options
         if self.options['circuitClientIP'] and self.options['circuitServerIP']:
             newOptions['hostDest'] = self.options['circuitServerIP']

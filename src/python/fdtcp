@@ -176,6 +176,8 @@ class Transfer(object):
         # if only one will be specified, it will not be a problem. This needs to be printed about problem!
         self.circuitServerIP = conf.get('servercircuitip')
         self.circuitClientIP = conf.get('clientcircuitip')
+        self.portServer = conf.get('portServer')
+        self.monID = conf.get('monID')
 
     def __str__(self):
         numFiles = len(self.files)
@@ -251,7 +253,8 @@ class Transfer(object):
         destFiles = [f.fileDest for f in self.files]
         options = dict(gridUserDest=remoteGridUserDest, clientIP=clientIP,
                        destFiles=destFiles, circuitServerIP=self.circuitServerIP,
-                       circuitClientIP=self.circuitClientIP)
+                       circuitClientIP=self.circuitClientIP,
+                       portServer=self.portServer, monID=self.monID)
         recvServerAction = ReceivingServerAction(self.id, options)
         result = self.receiver.perform(recvServerAction)
         serverFDTPort = result.serverPort
@@ -269,7 +272,8 @@ class Transfer(object):
                        transferFiles=self.files,
                        gridUserSrc=remoteGridUserSrc,
                        circuitServerIP=self.circuitServerIP,
-                       circuitClientIP=self.circuitClientIP)
+                       circuitClientIP=self.circuitClientIP,
+                       portServer=self.portServer, monID=self.monID)
         sndClientAction = SendingClientAction(self.id, options)
         # this command will stop the execution flow, for very very long if
         # the transfer data is bulky - status monitoring via MonALISA
@@ -460,6 +464,11 @@ class ConfigFDTCopy(Config):
         self._parser.add_option("-i", "--clientcircuitip", help=helps)
         helps = "optional argument for specifying server circuit IP"
         self._parser.add_option("-y", "--servercircuitip", help=helps)
+        helps = "Port which user for transfers. This overcomes the default configuration on the server"
+        self._parser.add_option("-p", "--portServer", help=helps)
+        helps = "Monitoring ID with which to report transfer statistics"
+        self._parser.add_option("-m", "--monID", help=helps)
+
 
     def processCommandLineOptions(self, args):
         """This method gets called from base class"""
