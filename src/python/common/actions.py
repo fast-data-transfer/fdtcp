@@ -187,12 +187,12 @@ class ReceivingServerAction(Action):
         # processes .. not very elegant solution, shall be revised
         # once currently very rare #38 problem is understood
         found = False
-        procs = psutil.pids()
+        procs = psutil.get_pid_list()
         logger.debug("Going to check %s processes ..." % len(procs))
         for pid in procs:
             try:
                 proc = psutil.Process(pid)
-                conns = proc.connections()
+                conns = proc.get_connections()
             except psutil.AccessDenied:
                 logger.debug("Access denied to process PID: %s, "
                              "continue ..." % pid)
@@ -200,15 +200,15 @@ class ReceivingServerAction(Action):
             for conn in conns:
                 # It can have multiple connections, so need to check all
                 try:
-                    connPort = int(conn[0].laddr[1])
+                    connPort = int(conn.local_address[1])
                     if port == connPort:
                         m = ("Detected: process PID: %s occupies port: %s "
                              "(user: %s, cmdline: %s)" %
-                             (pid, port, proc.username(), proc.cmdline()))
+                             (pid, port, proc.username(), " ".join(proc.cmdline)))
                         logger.debug(m)
                         found = True
                 except AttributeError as er:
-                    logger.debug("Got unnexpected attribute error. %s %s" % (conn[0], er))
+                    logger.debug("Got unnexpected attribute error. %s %s" % (conn, er))
                     continue
             if found:
                 break
@@ -224,8 +224,6 @@ class ReceivingServerAction(Action):
         """
         startTime = datetime.datetime.now()
         # may fail with subset of FDTDException which will be propagated
-        logger.info("All conf %s" % conf)
-        logger.info("AllOptions: %s" % self.options)
         port = None
         if 'portServer' in self.options:
             logger.info("Forcing to use user specified port %s" % self.options['portServer'])
