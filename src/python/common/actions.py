@@ -143,6 +143,7 @@ class ReceivingServerAction(Action):
         newOptions = self.options
         if self.options['circuitClientIP'] and self.options['circuitServerIP']:
             newOptions['clientIP'] = self.options['circuitClientIP']
+        newOptions['apmonDest'] = conf.get("apMonDestinations")
         self.command = conf.get("fdtReceivingServerCommand") % newOptions
 
     def _checkTargetFileNames(self, destFiles):
@@ -343,6 +344,7 @@ class SendingClientAction(Action):
         if 'monID' not in self.options:
             self.options["monID"] = self.id
         newOptions = self.options
+        newOptions['apmonDest'] = conf.get("apMonDestinations")
         if self.options['circuitClientIP'] and self.options['circuitServerIP']:
             newOptions['hostDest'] = self.options['circuitServerIP']
 
