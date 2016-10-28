@@ -229,10 +229,10 @@ class ReceivingServerAction(Action):
         port = None
         if 'portServer' in self.options:
             logger.info("Forcing to use user specified port %s" % self.options['portServer'])
-            port = self.options['portServer']
+            port = int(self.options['portServer'])
         else:
             logger.info("Try to get a free port")
-            port = caller.getFreePort()
+            port = int(caller.getFreePort())
         self._setUp(conf, port)
         destFiles = self.options["destFiles"]
         logger.info("%s - checking presence of files at target "
