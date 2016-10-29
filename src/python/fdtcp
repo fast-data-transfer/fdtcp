@@ -67,6 +67,7 @@ try:
     from fdtcplib.common.TransferFile import TransferFile
     from fdtcplib.common.errors import FDTDException, TimeoutException
     from fdtcplib.common.errors import FDTCopyException, FDTCopyShutdownBySignal
+    from fdtcplib.common.errors import PortInUseException
     from fdtcplib.utils.Config import ConfigurationException
 except ImportError, ex:
     print "Can't import dependency modules: %s" % ex
@@ -584,6 +585,11 @@ def main():
                 transfer.result = 1
                 transfer.log = ex
                 appExitStatus = 1
+            except PortInUseException as ex:
+                logger.error("Transfer failed, reason seems Port In Use %s" % ex)
+                transfer.result = 1
+                transfer.log = ex
+                appExitStatus = 2
             except ExecutorException, ex:
                 # TODO
                 # this type of exception is too low-level, should be wrapper on an upper level
