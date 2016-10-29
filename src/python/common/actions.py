@@ -14,12 +14,12 @@ Actions .execute() methods are called on the side of fdtd, so caller
     remote party and not with local fdtcp.
 """
 from __future__ import division
-from past.utils import old_div
 import os
 import time
 import datetime
-import psutil
 import re
+import psutil
+from past.utils import old_div
 
 from fdtcplib.utils.Executor import Executor, ExecutorException
 from fdtcplib.utils.utils import getHostName, getDateTime
@@ -204,7 +204,7 @@ class ReceivingServerAction(Action):
                     if port == connPort:
                         m = ("Detected: process PID: %s occupies port: %s "
                              "(user: %s, cmdline: %s)" %
-                             (pid, port, proc.username(), " ".join(proc.cmdline)))
+                             (pid, port, proc.username(), " ".join(proc.cmdline())))
                         logger.debug(m)
                         exMsg += m
                         found = True
