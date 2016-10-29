@@ -204,7 +204,7 @@ class ReceivingServerAction(Action):
                     if port == connPort:
                         m = ("Detected: process PID: %s occupies port: %s "
                              "(user: %s, cmdline: %s)" %
-                             (pid, port, proc.username(), " ".join(proc.cmdline())))
+                             (pid, port, proc.username, " ".join(proc.cmdline)))
                         logger.debug(m)
                         exMsg += m
                         found = True
@@ -229,7 +229,11 @@ class ReceivingServerAction(Action):
         port = None
         if 'portServer' in self.options:
             logger.info("Forcing to use user specified port %s" % self.options['portServer'])
-            port = int(self.options['portServer'])
+            try:
+                port = int(self.options['portServer'])
+            except TypeError as er:
+                logger.info("Provided portServer key is not convertable to integer: %, Error: %s", self.options['portServer'], er)
+                port = int(caller.getFreePort())
         else:
             logger.info("Try to get a free port")
             port = int(caller.getFreePort())
