@@ -61,7 +61,7 @@ gzip -dc $MLSENSOR_KIT | tar xf -
 
 rm -f $MLSENSOR_KIT
 
-replace_in_file MLSensor/etc/mlsensor.properties "localhost:56884" " 131.215.207.20:8884"
+replace_in_file MLSensor/etc/mlsensor.properties "localhost:56884" "monalisa.cern.ch:8885"
 
 if [ "$STARTMLSENSOR" == "y" -o "$STARTMLSENSOR" == "Y" ] ; then
 	echo
