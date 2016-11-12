@@ -377,8 +377,24 @@ class SendingClientAction(Action):
                             killTimeout=killTimeout,
                             syncFlag=False,
                             logger=logger)
+        calledLimit = False
+        customclassID = int(self.options['port']) - 50000
         try:
             try:
+                #######
+                try:
+                    if 'hostDest' in self.options and 'port' in self.options:
+                        logger.info("Calling TC command with %s" % self.options)
+                        # limit add destPort rate sourceIP destIP port
+                        exitCode = os.system("limit add %s %s %s %s %s" % (customclassID, 500,
+                                                                           self.options['clientIP'],
+                                                                           self.options['hostDest'],
+                                                                           self.options['port']))
+                        logger.info('Exit Code %s', exitCode)
+                        calledLimit = True
+                except:
+                    logger.debug("Something went wrong with calling tc command.... Is alias there ? Configuration I used %s", self.options)
+                #######
                 output = executor.execute()
             except ExecutorException as ex:
                 m = ("FDT Java client on %s failed, "
@@ -403,6 +419,17 @@ class SendingClientAction(Action):
             # give signal on this actions Executor instance that its handling
             # finished (e.g. CleanupProcessesAction may be waiting for this)
             executor.syncFlag = False
+            # Remove the assigned limit
+            if calledLimit:
+                try:
+                    # Remove assigned limit
+                    exitCode = os.system("limit remove %s %s %s %s %s" % (customclassID, 500,
+                                                                          self.options['clientIP'],
+                                                                          self.options['hostDest'],
+                                                                          self.options['port']))
+                    logger.info('Exit Code %s', exitCode)
+                except:
+                    logger.debug("Something went wrong with calling tc command for remove.... Is alias there ? Configuration I used %s", self.options)
 
 
 class AuthClientAction(Action):
