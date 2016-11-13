@@ -378,15 +378,17 @@ class SendingClientAction(Action):
                             syncFlag=False,
                             logger=logger)
         calledLimit = False
-        customclassID = int(self.options['port']) - 50000
+        # customclassID = int(self.options['port']) - 50000
+        # Use monID as a hash of tc class
+        customclassID = int(self.options['monID'][:4], 16) % 10000
         try:
             try:
-                #######
                 try:
-                    if 'hostDest' in self.options and 'port' in self.options:
+                    if 'rate' in self.options and 'clientIP' in self.options and \
+                       'hostDest' in self.options and 'port' in self.options:
                         logger.info("Calling TC command with %s" % self.options)
-                        # limit add destPort rate sourceIP destIP port
-                        exitCode = os.system("limit add %s %s %s %s %s" % (customclassID, 500,
+                        # limit add <class> <rate> <sourceIP> <destIP> <destPort>
+                        exitCode = os.system("limit add %s %s %s %s %s" % (customclassID, self.options['rate'],
                                                                            self.options['clientIP'],
                                                                            self.options['hostDest'],
                                                                            self.options['port']))
@@ -394,7 +396,6 @@ class SendingClientAction(Action):
                         calledLimit = True
                 except:
                     logger.debug("Something went wrong with calling tc command.... Is alias there ? Configuration I used %s", self.options)
-                #######
                 output = executor.execute()
             except ExecutorException as ex:
                 m = ("FDT Java client on %s failed, "
@@ -423,6 +424,7 @@ class SendingClientAction(Action):
             if calledLimit:
                 try:
                     # Remove assigned limit
+                    # limit remove <classID> _ <sourceIP>
                     exitCode = os.system("limit remove %s %s %s %s %s" % (customclassID, 500,
                                                                           self.options['clientIP'],
                                                                           self.options['hostDest'],
