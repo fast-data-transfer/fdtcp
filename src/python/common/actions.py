@@ -379,10 +379,6 @@ class SendingClientAction(Action):
                             syncFlag=False,
                             logger=logger)
         calledLimit = False
-        # customclassID = int(self.options['port']) - 50000
-        # Use monID as a hash of tc class
-        monID = hashlib.sha224(self.options['monID']).hexdigest()
-        customclassID = int(monID[:4], 16) % 10000
         try:
             try:
                 try:
@@ -390,6 +386,10 @@ class SendingClientAction(Action):
                        'hostDest' in self.options and 'port' in self.options:
                         logger.info("Calling TC command with %s" % self.options)
                         # limit add <class> <rate> <sourceIP> <destIP> <destPort>
+
+                        # Use monID as a hash of tc class
+                        monID = hashlib.sha224(self.options['monID'], "%s:%s" % (self.options['hostDest'], self.options['port'])).hexdigest()
+                        customclassID = int(monID[:4], 16) % 10000
                         exitCode = os.system("limit add %s %s %s %s %s" % (customclassID, self.options['rate'],
                                                                            self.options['clientIP'],
                                                                            self.options['hostDest'],
