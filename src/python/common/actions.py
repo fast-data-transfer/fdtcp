@@ -388,7 +388,9 @@ class SendingClientAction(Action):
                         # limit add <class> <rate> <sourceIP> <destIP> <destPort>
 
                         # Use monID as a hash of tc class
-                        monID = hashlib.sha224(self.options['monID'], "%s:%s" % (self.options['hostDest'], self.options['port'])).hexdigest()
+                        monID = hashlib.sha224(self.options.get('monID',
+                                                                "%s:%s" % (self.options['hostDest'], self.options['port']))
+                        ).hexdigest()
                         customclassID = int(monID[:4], 16) % 10000
                         exitCode = os.system("limit add %s %s %s %s %s" % (customclassID, self.options['rate'],
                                                                            self.options['clientIP'],
