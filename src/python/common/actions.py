@@ -19,6 +19,7 @@ import time
 import datetime
 import re
 import psutil
+import hashlib
 from past.utils import old_div
 
 from fdtcplib.utils.Executor import Executor, ExecutorException
@@ -380,7 +381,8 @@ class SendingClientAction(Action):
         calledLimit = False
         # customclassID = int(self.options['port']) - 50000
         # Use monID as a hash of tc class
-        customclassID = int(self.options['monID'][:4], 16) % 10000
+        monID = hashlib.sha224(self.options['monID']).hexdigest()
+        customclassID = int(monID[:4], 16) % 10000
         try:
             try:
                 try:
