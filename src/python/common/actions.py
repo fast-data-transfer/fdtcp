@@ -379,6 +379,7 @@ class SendingClientAction(Action):
                             syncFlag=False,
                             logger=logger)
         calledLimit = False
+        customclassID = ""
         try:
             try:
                 try:
