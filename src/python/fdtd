@@ -18,9 +18,9 @@ from threading import Lock
 import apmon
 from psutil import Process
 from psutil import NoSuchProcess
-import Pyro
-import Pyro.core
-from Pyro.errors import PyroError
+import Pyro4
+import Pyro4.core
+from Pyro4.errors import PyroError
 from fdtcplib.utils.Executor import Executor
 from fdtcplib.utils.Executor import ExecutorException
 from fdtcplib.utils.Config import Config
@@ -47,19 +47,19 @@ class PortReservation(object):
         class Port(object):
             """ TODO doc """
             def __init__(self):
-                self._port = 0
-                self._reservedTimes = 0
-                self._reservedNow = False
+                self.port = 0
+                self.reservedTimes = 0
+                self.reservedNow = False
 
         portRange = range(portMin, portMax + 1)
-        self._ports = [Port() for dummyi_ in range(len(portRange))]
-        for port, pr in zip(self._ports, portRange):
-            port._port = pr
+        self.ports = [Port() for dummyi_ in range(len(portRange))]
+        for port, pr in zip(self.ports, portRange):
+            port.port = pr
         # just a counter of taken port
-        self._numTakenPorts = 0
+        self.numTakenPorts = 0
         # will be secured by lock, mutex access to port
         # reservation / releasing
-        self._lock = threading.Lock()
+        self.lock = threading.Lock()
 
     def reserve(self):
         """
@@ -68,25 +68,25 @@ class PortReservation(object):
         bind ...' problems since the timeouts shall be well over given
         decent number of possible ports).
         """
-        if len(self._ports) == self._numTakenPorts:
+        if len(self.ports) == self.numTakenPorts:
             raise PortReservationException("No free port to reserve. "
                                            "%s ports taken." %
-                                           self._numTakenPorts)
-        self._lock.acquire(True)  # block
-        candid = self._ports[0]
-        for port in self._ports:
-            if (not port._reservedNow and
-                    port._reservedTimes < candid._reservedTimes):
+                                           self.numTakenPorts)
+        self.lock.acquire(True)  # block
+        candid = self.ports[0]
+        for port in self.ports:
+            if (not port.reservedNow and
+                    port.reservedTimes < candid.reservedTimes):
                 candid = port
                 break
         else:
             # no other port was assigned, take the first one
-            candid = self._ports[0]
-        self._numTakenPorts += 1
-        candid._reservedTimes += 1
-        candid._reservedNow = True
-        self._lock.release()
-        return candid._port
+            candid = self.ports[0]
+        self.numTakenPorts += 1
+        candid.reservedTimes += 1
+        candid.reservedNow = True
+        self.lock.release()
+        return candid.port
 
     def release(self, portToRel):
         """
@@ -94,22 +94,22 @@ class PortReservation(object):
         """
         m = ("Trying to release a port which is not currently "
              "reserved (%s)." % portToRel)
-        self._lock.acquire(True)  # block
+        self.lock.acquire(True)  # block
         try:
-            for port in self._ports:
-                if port._port == portToRel:
-                    if not port._reservedNow:
+            for port in self.ports:
+                if port.port == portToRel:
+                    if not port.reservedNow:
                         raise PortReservationException(m)
-                    port._reservedNow = False
-                    self._numTakenPorts -= 1
+                    port.reservedNow = False
+                    self.numTakenPorts -= 1
                     break
             else:
                 raise PortReservationException(m)
         finally:
-            self._lock.release()
+            self.lock.release()
 
 
-class FDTDService(Pyro.core.ObjBase):
+class FDTDService(object):
     """
     PYRO service invoked remotely (PYRO daemon)
     Have only very simplistic class - it's exposed to calls from network.
@@ -129,16 +129,15 @@ class FDTDService(Pyro.core.ObjBase):
         self.conf = conf
         self.apMon = apMon
         self.fdtd = fdtd
-        Pyro.core.ObjBase.__init__(self)
-        self._stopFlag = False
+        self.stopFlag = False
 
-    def _handleServiceStopped(self):
+    def handleServiceStopped(self):
         """TODO doc """
         m = "%s stopped or is being shutdown ..." % self.__class__.__name__
         self.logger.error(m)
         raise PyroError(m)
 
-    def _getSeparateLogger(self, action):
+    def getSeparateLogger(self, action):
         """
         Check if there already is an associated logger on a possibly
         running executor, used that one (do not re-initialize)
@@ -172,7 +171,7 @@ class FDTDService(Pyro.core.ObjBase):
         # logs sub-calls belonging to the same transfer will be appended
         transferSeparateLogFile = self.conf.get("transferSeparateLogFile")
         if transferSeparateLogFile:
-            logger = self._getSeparateLogger(action)
+            logger = self.getSeparateLogger(action)
             logger.debug(m)
             self.logger.debug("Logging separately into file %s" %
                               logger.logFile)
@@ -180,8 +179,8 @@ class FDTDService(Pyro.core.ObjBase):
             # use the main logger
             logger = self.logger
 
-        if self._stopFlag:
-            self._handleServiceStopped()
+        if self.stopFlag:
+            self.handleServiceStopped()
 
         # this performs the request from the remote client
         try:
@@ -219,7 +218,7 @@ class FDTDService(Pyro.core.ObjBase):
         """
         TODO: should be secured so that it is not called from outside ...
         """
-        self._stopFlag = True
+        self.stopFlag = True
         self.logger.debug("%s service stop flag set." %
                           self.__class__.__name__)
 
@@ -232,10 +231,11 @@ class FDTD(object):
     _name = None
 
     def __init__(self, conf, apMon, logger):
-        self._name = self.__class__.__name__
+        self.name = self.__class__.__name__
         self.conf = conf
         self.apMon = apMon  # MonALISA ApMon monitoring instance
         self.logger = logger
+        self.pyroDaemon = None
         self.logger.debug("Creating instance of %s ..." % self._name)
 
         # tracking ports occupied by already started FTD Java servers
@@ -247,14 +247,14 @@ class FDTD(object):
             raise FDTDException("Incorrect format of port range definition: "
                                 "'%s', reason: %s" % (portRangeStr, ex))
         # range of all possible ports reserved for FDT Java
-        self._portMgmt = PortReservation(portMin, portMax)
+        self.portMgmt = PortReservation(portMin, portMax)
 
         # dictionary of currently running processes spawned from the
         # PYRO service used to query status, clean up (terminate, kill)
         # when shutting down, key is id of the ExecutorAction, this
         # dictionary needs exclusive access
-        self._executors = {}
-        self._executorsLock = Lock()
+        self.executors = {}
+        self.executorsLock = Lock()
 
         try:
             port = int(self.conf.get("port"))
@@ -270,36 +270,34 @@ class FDTD(object):
         signal.signal(signal.SIGUSR1, self._signalHandler)
         signal.signal(signal.SIGALRM, self._signalHandler)
 
-        self._initPYRO(host, port)
+        self.initPYRO(host, port)
         self.service = FDTDService(self.logger, self.conf, self.apMon, self)
 
         self.logger.info("%s daemon object initialised." % self._name)
 
-    def _initPYRO(self, host, port):
+    def initPYRO(self, host, port):
         """
         Initialise the PYRO service, start PYRO daemon.
         Insist on exactly this port for the service.
         """
-        Pyro.core.initServer()
         self.logger.debug("Trying to bind to '%s:%s' ..." % (host, port))
         try:
             # insist on exactly this port
-            self.pyroDaemon = Pyro.core.Daemon(host=host,
-                                               port=port,
-                                               norange=1)
+            self.pyroDaemon = Pyro4.core.Daemon(host=host,
+                                                port=port)
         except PyroError as ex:
             m = ("PYRO service could not start (port:%s), reason: %s" %
                  (port, ex))
             raise FDTDException(m)
 
         self.logger.info("PYRO service is running on %s:%s" %
-                         (self.pyroDaemon.hostname, self.pyroDaemon.port))
+                         (host, port))
 
     def getFreePort(self):
         """
         Reserve a free port in a synchronized fashion.
         """
-        port = self._portMgmt.reserve()
+        port = self.portMgmt.reserve()
         self.logger.debug("Port '%s' is now reserved." % port)
         return port
 
@@ -308,7 +306,7 @@ class FDTD(object):
         Release a port in a synchronized fashion.
 
         """
-        self._portMgmt.release(port)
+        self.portMgmt.release(port)
         self.logger.debug("Port '%s' released." % port)
 
     def checkExecutorPresence(self, executor):
@@ -317,7 +315,7 @@ class FDTD(object):
         _executors container, False otherwise.
 
         """
-        if executor.id in self._executors:
+        if executor.id in self.executors:
             return True
         else:
             return False
@@ -334,10 +332,10 @@ class FDTD(object):
                  "wasn't not cleared up properly?" % executor.id)
             raise FDTDException(m)
         else:
-            self._executorsLock.acquire(True)
-            self._executors[executor.id] = executor
-            total = len(self._executors)
-            self._executorsLock.release()
+            self.executorsLock.acquire(True)
+            self.executors[executor.id] = executor
+            total = len(self.executors)
+            self.executorsLock.release()
             executor.logger.debug("%s added to the FDTD executors container "
                                   "(total %s items)." % (executor, total))
 
@@ -348,18 +346,18 @@ class FDTD(object):
         For logging use the request-associated logger, not this
         instance's one
         """
-        self._executorsLock.acquire(True)
-        total = len(self._executors)
+        self.executorsLock.acquire(True)
+        total = len(self.executors)
         e.logger.debug("FDT executors container before removing attempt "
                        "(total %s items)." % total)
         try:
-            del self._executors[e.id]
+            del self.executors[e.id]
             e.logger.critical("Process of executor id '%s' (process "
                               "PID: %s) still exists! Not removing from "
                               "FDTD executors container." %
                               (e.id, e.proc.pid))
             # put it back
-            self._executors[e.id] = e
+            self.executors[e.id] = e
         except KeyError:
             e.logger.error("Executor id '%s' not present in the FDTD "
                            "executors container." % e.id)
@@ -379,10 +377,10 @@ class FDTD(object):
             else:
                 e.logger.debug("Port property is not set, nothing to "
                                "release.")
-            total = len(self._executors)
+            total = len(self.executors)
             e.logger.debug("%s removed from the FDTD executors container "
                            "(total %s items)." % (e, total))
-        self._executorsLock.release()
+        self.executorsLock.release()
 
     def getExecutor(self, idE):
         """
@@ -390,12 +388,12 @@ class FDTD(object):
         the given id (id of the transfer is the same as of the executor)
         and if it doesn't exist, return None.
         """
-        self._executorsLock.acquire(True)
+        self.executorsLock.acquire(True)
         try:
-            r = self._executors[idE]
+            r = self.executors[idE]
         except KeyError:
             r = None
-        self._executorsLock.release()
+        self.executorsLock.release()
         return r
 
     def killProcess(self, idE, logger, waitTimeout=True):
@@ -407,8 +405,8 @@ class FDTD(object):
         """
         logger.debug("Processing clean up / process kill request for "
                      "transfer id '%s' ..." % idE)
-        if idE in self._executors:
-            executor = self._executors[idE]
+        if idE in self.executors:
+            executor = self.executors[idE]
             m = self._killProcess(executor, logger, waitTimeout=waitTimeout)
             logger.info(m)
             self.removeExecutor(executor)
@@ -421,7 +419,7 @@ class FDTD(object):
     def start(self):
         """ TODO doc """
         objServiceName = self.service.__class__.__name__
-        uri = self.pyroDaemon.connect(self.service, objServiceName)
+        uri = self.pyroDaemon.register(self.service, objServiceName)
         self.logger.info("%s waiting for requests ... ('%s' uri: '%s')" %
                          (self._name, objServiceName, uri))
         # the flow stops at this call - can be interrupted by a signal
@@ -543,28 +541,27 @@ class FDTD(object):
         # PyroError in response
         self.service.setStop()
 
-        self.pyroDaemon.shutdown(True)
         self.logger.warn("PYRO internal daemon shutdown flag set.")
 
         self.logger.warn("%s associated processes running." %
-                         len(self._executors))
-        self._executorsLock.acquire()
+                         len(self.executors))
+        self.executorsLock.acquire()
         loggersToClose = []
         try:
-            for idE in self._executors:
+            for idE in self.executors:
                 # here calling ._killProcess with the FDTD instance logger
                 # this operation is not related to any request
-                m = self._killProcess(self._executors[idE],
-                                      self.logger,
-                                      waitTimeout=False)
+                m = self.killProcess(self.executors[idE],
+                                     self.logger,
+                                     waitTimeout=False)
                 self.logger.info(m)
                 # check for separate log files, if it's open, close
-                e = self._executors[idE]
+                e = self.executors[idE]
                 if (e.logger is not self.logger) and e.logger.isOpen:
                     loggersToClose.append(e.logger)
         except FDTDException as ex:
             self.logger.error(ex)
-        self._executorsLock.release()
+        self.executorsLock.release()
 
         """
         Calling pyroDaemon.closedown() is troublesome and in fact not clear
@@ -617,7 +614,7 @@ class FDTD(object):
             #       local_address=('10.0.0.1', 48776),
             #       remote_address=('93.186.135.91', 80),
             #       status='ESTABLISHED')
-            conns = process.get_connections()
+            conns = process.connections()
             for conn in conns:
                 la = conn.local_address
                 self.logger.debug("FDTD daemon connections: '%s'" %
@@ -643,16 +640,16 @@ class FDTD(object):
             # in progress
             self.logger.warn("SIGHUP signal %s caught, checking for running "
                              "transfer(s) ..." % signum)
-            self._executorsLock.acquire(True)
+            self.executorsLock.acquire(True)
             execCounter = 0
-            for e in self._executors.values():
+            for e in self.executors.values():
                 if e.id == "AuthService":
                     continue  # AuthService is present all the time, ignore
                 else:
                     # other executor IDs - transfer - do not shutdown then
                     self.logger.debug("In executors container: %s" % e)
                     execCounter += 1
-            self._executorsLock.release()
+            self.executorsLock.release()
             self.logger.debug("Signal handler: %s transfers running." %
                               execCounter)
             numFiles, filesStr = getOpenFilesList()
@@ -709,10 +706,29 @@ class ConfigFDTD(Config):
         currDirConfig = os.path.join(currDir, "fdtd.conf")
         # consider only config file being in the same directory
         # as well as in the system config directory location
-        self._options = {}
+        self.options = {}
+        # mandatory configuration values, integers
+        self.mandatoryInt = ["port",
+                             "portAuthService",
+                             "fdtSendingClientKillTimeout",
+                             "fdtServerLogOutputTimeout",
+                             "fdtReceivingServerKillTimeout"]
+        # "authServiceLogOutputTimeout"]
+        # mandatory configuration values, strings
+        self.mandatoryStr = ["fdtSendingClientCommand",
+                             "fdtReceivingServerCommand",
+                             "debug",
+                             "portRangeFDTServer",
+                             "transferSeparateLogFile",
+                             "fdtServerLogOutputToWaitFor",
+                             "killCommandSudo",
+                             "killCommand",
+                             "daemonize"]
+    # "authServiceLogOutputToWaitFor",
+    # "authServiceCommand",
         locations = [currDirConfig, "/etc/fdtcp/fdtd.conf"]
         self.usage = None
-        Config.__init__(self, args, locations)
+        Config.__init__(self, args, locations, mandInt=self.mandatoryInt, mandStr=self.mandatoryStr)
 
     def processCommandLineOptions(self, args):
         """
@@ -720,39 +736,39 @@ class ConfigFDTD(Config):
 
         """
         helps = "debug output level, for possible values see the config file"
-        self._parser.add_option("-d", "--debug", help=helps)
+        self.parser.add_option("-d", "--debug", help=helps)
         helps = "port number on which to start local fdtd service"
-        self._parser.add_option("-p", "--port", help=helps)
+        self.parser.add_option("-p", "--port", help=helps)
         helps = "configuration file for fdtd service"
-        self._parser.add_option("-c", "--config", help=helps)
+        self.parser.add_option("-c", "--config", help=helps)
         helps = "print this help"
-        self._parser.add_option("-h", "--help", help=helps, action='help')
+        self.parser.add_option("-h", "--help", help=helps, action='help')
         helps = "specify hostname of this machine"
-        self._parser.add_option("-H", "--hostname", help=helps)
+        self.parser.add_option("-H", "--hostname", help=helps)
         helps = "output log file"
-        self._parser.add_option("-l", "--logFile", help=helps)
+        self.parser.add_option("-l", "--logFile", help=helps)
         helps = "run the service on the background as daemon process"
-        self._parser.add_option("-a",
-                                "--daemonize",
-                                action="store_true",
-                                help=helps)
+        self.parser.add_option("-a",
+                               "--daemonize",
+                               action="store_true",
+                               help=helps)
         helps = "file to store PID of the daemon process (when running \
                  with daemonize)"
-        self._parser.add_option("-i", "--pidFile", help=helps)
+        self.parser.add_option("-i", "--pidFile", help=helps)
         helps = "each transfer related requests will be logged in a \
                 separate log file"
-        self._parser.add_option("-s",
-                                "--transferSeparateLogFile",
-                                action="store_true", help=helps)
+        self.parser.add_option("-s",
+                               "--transferSeparateLogFile",
+                               action="store_true", help=helps)
 
         # opts - new processed options, items defined above as attributes
         # args - remainder of the input array
-        opts, args = self._parser.parse_args(args=args)
+        opts, args = self.parser.parse_args(args=args)
 
         # want to have _options a dictionary, rather than instance
         # some Values class from within optparse.OptionParser
         #self._options = opts
-        self._options = eval(str(opts))
+        self.options = eval(str(opts))
 
 
 class AuthService(object):
@@ -912,7 +928,8 @@ def startApplication(conf, logger):
                     "destinations provided.")
 
     # use DNS names rather than IP address
-    Pyro.config.PYRO_DNS_URI = True
+    # Pyro.config.PYRO_DNS_URI = True
+    # TODO: Force it from config to be a hostname...
 
     daemon = None
     try:
@@ -937,9 +954,9 @@ def startApplication(conf, logger):
         if daemon:
             try:
                 daemon.shutdown()
-            except Exception as exx:
+            except Exception as ex:
                 logger.fatal("Exception occurred during shutdown sequence, "
-                             "reason: %s" % exx, traceBack=True)
+                             "reason: %s" % ex, traceBack=True)
         try:
             if apMon:
                 logger.debug("Releasing ApMon ...")
@@ -956,9 +973,9 @@ def startApplication(conf, logger):
                 except OSError as ex:
                     logger.error("Could not remove PID file '%s', "
                                  "reason: %s" % (pidFile, ex))
-        except Exception as exx:
+        except Exception as ex:
             logger.fatal("Exception occurred during shutdown-cleanup, "
-                         "reason: %s" % exx, traceBack=True)
+                         "reason: %s" % ex, traceBack=True)
         logger.close()
 
 
@@ -974,25 +991,25 @@ def main():
         sys.exit(1)
 
     logger = Logger(name="fdtd",
-                    logFile=conf.get("logFile"),
-                    level=conf.get("debug"))
+                    logFile=conf.options.get("logFile"),
+                    level=conf.options.get("debug"))
     # ticket #35 - mercurial expandable keywords in the code
     # information from the SCM (expandable keywords)
     versionInfo = dict(Revision="$Revision: 99536bb6d942 $",
                        Tags="$Tags: tip $")
-    logger.info("fdtd starting ... version: %s" %
+    logger.info("fdtd starting ... version: %s",
                 logger.pprintFormat(versionInfo))
-    logger.debug("Search sys.path:\n%s\n" % logger.pprintFormat(sys.path))
-    logger.debug("PYRO_STORAGE: '%s'" % os.environ.get("PYRO_STORAGE"))
+    logger.debug("Search sys.path:\n%s\n", logger.pprintFormat(sys.path))
+    logger.debug("PYRO_STORAGE: '%s'", os.environ.get("PYRO_STORAGE"))
     numOpen = resource.getrlimit(resource.RLIMIT_NOFILE)
-    logger.debug("Number of allowed open files: %s" % (numOpen,))
+    logger.debug("Number of allowed open files: %s", (numOpen,))
 
-    logger.debug("Input command line arguments: '%s'" % optBackup)
-    logger.debug("Configuration values (processed):\n%s\n" %
-                 logger.pprintFormat(conf._options))
+    logger.debug("Input command line arguments: '%s'", optBackup)
+    logger.debug("Configuration values (processed):\n%s\n",
+                 logger.pprintFormat(conf.options))
 
     # daemonization
-    if conf.get("daemonize"):
+    if conf.options.get("daemonize"):
         daemonize(conf, logger)
     else:
         logger.info("Starting the service on foreground ...")

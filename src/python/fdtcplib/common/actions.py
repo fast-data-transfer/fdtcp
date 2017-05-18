@@ -187,12 +187,12 @@ class ReceivingServerAction(Action):
         # processes .. not very elegant solution, shall be revised
         # once currently very rare #38 problem is understood
         found = False
-        procs = psutil.get_pid_list()
+        procs = psutil.pids()
         logger.debug("Going to check %s processes ..." % len(procs))
         for pid in procs:
             try:
                 proc = psutil.Process(pid)
-                conns = proc.get_connections()
+                conns = proc.connections()
             except psutil.AccessDenied:
                 logger.debug("Access denied to process PID: %s, "
                              "continue ..." % pid)

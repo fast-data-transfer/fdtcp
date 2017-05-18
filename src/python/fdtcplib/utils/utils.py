@@ -62,7 +62,7 @@ def getOpenFilesList(offset=4):
     """
     myPid = os.getpid()
     proc = Process(myPid)
-    files = proc.get_open_files()
+    files = proc.open_files()
     filesStr = "\n".join(["%s%s (fd=%s)" % (offset * ' ', f.path, f.fd)
                           for f in files])
     numFiles = len(files)

@@ -37,7 +37,7 @@ class Config(object):
 
     """
 
-    def __init__(self, args, configFileLocations=[], usage=None):
+    def __init__(self, args, configFileLocations=None, usage=None, mandInt=None, mandStr=None):
         """
         configFileLocations are full paths to the configuration files
         to use - first location which founds the file is taken, if
@@ -45,18 +45,27 @@ class Config(object):
         (config option).
 
         """
+        if not configFileLocations:
+            configFileLocations = []
+        if not mandInt:
+            mandInt = []
+        if not mandStr:
+            mandStr = []
         form = TitledHelpFormatter(width=78)
-        self._parser = OptionParser(usage=usage,
-                                    formatter=form,
-                                    add_help_option=None)
+        self.parser = OptionParser(usage=usage,
+                                   formatter=form,
+                                   add_help_option=None)
+        self.options = {}
+        self.mandatoryInt = mandInt
+        self.mandatoryStr = mandStr
         # implemented in the subclass - particular command line interface
         self.processCommandLineOptions(args)
 
         # self._options is now available - modify / add values according
         # to the values found in the config file
-        self._processConfigFile(configFileLocations)
+        self.processConfigFile(configFileLocations)
 
-    def _parseConfigFile(self, fileName):
+    def parseConfigFile(self, fileName):
         """ TODO doc """
         if not os.path.exists(fileName):
             raise ConfigurationException("Config file %s does not exist." %
@@ -76,17 +85,17 @@ class Config(object):
                 # line and such value takes precedence over configuration file
                 # beware - attribute may exist from command line parser
                 # and be None - then set proper value here
-                if self.get(name) == None:
-                    self._options[name] = value
+                if self.get(name) is None:
+                    self.options[name] = value
 
                 # to some strings types processing ...
                 if isinstance(self.get(name), bytes):
                     # convert 'True', 'False' strings to bool values
                     # True, False
                     if value.lower() == 'true':
-                        self._options[name] = True
+                        self.options[name] = True
                     if value.lower() == 'false':
-                        self._options[name] = False
+                        self.options[name] = False
 
                 # if the configuration value is string and has been defined
                 # (in config file or CLI) with surrounding " or ', remove that
@@ -98,7 +107,7 @@ class Config(object):
                         r = r[1:]
                     if r[-1] in ("'", '"'):
                         r = r[:-1]
-                    self._options[name] = r
+                    self.options[name] = r
         except Exception as ex:
             m = "Error while parsing %s, reason %s" % (fileName, ex)
             raise ConfigurationException(m)
@@ -107,9 +116,9 @@ class Config(object):
         # apart from this newly defined config value, there will also be
         # 'config' which remains None, unless specific config file
         # specified on CLI
-        self._options["currentConfigFile"] = fileName
+        self.options["currentConfigFile"] = fileName
 
-    def _processConfigFile(self, locations):
+    def processConfigFile(self, locations):
         """
         Name of the configuration file may be specified
         as a command line option, otherwise default file is taken.
@@ -118,18 +127,20 @@ class Config(object):
         will be used
 
         """
-        if self._options.get("config", None):
-            self._parseConfigFile(self._options["config"])
+        if self.options.get("config", None):
+            self.parseConfigFile(self.options["config"])
         else:
+            fname = ""
             for name in locations:
                 # first existing file is taken
                 if os.path.exists(name):
+                    fname = name
                     break
             else:
                 msg = ("No configuration provided / found, tried: %s" %
                        locations)
                 raise ConfigurationException(msg)
-            self._parseConfigFile(name)
+            self.parseConfigFile(fname)
 
     def processCommandLineOptions(self, args):
         """ TODO doc """
@@ -140,7 +151,7 @@ class Config(object):
 
     def get(self, what):
         """ TODO doc """
-        r = self._options.get(what, None)
+        r = self.options.get(what, None)
         # if not defined - return None
         return r
 
@@ -150,19 +161,19 @@ class Config(object):
         have sensible values.
         """
         # convert integer values to integers
-        for opt in self._mandatoryInt:
+        for opt in self.mandatoryInt:
             try:
                 v = self.get(opt)
                 i = int(v)
-                self._options[opt] = i
+                self.options[opt] = i
             except (ValueError, TypeError):
                 m = ("Illegal option '%s', expecting integer, got '%s'" %
                      (opt, v))
                 raise ConfigurationException(m)
 
         # checks only presence
-        for opt in self._mandatoryInt + self._mandatoryStr:
-            if self.get(opt) == None:  # have to test specifically None
+        for opt in self.mandatoryInt + self.mandatoryStr:
+            if self.get(opt) is None:  # have to test specifically None
                 raise ConfigurationException("Mandatory option '%s' not "
                                              "set." % opt)
 
@@ -171,7 +182,7 @@ class Config(object):
         name = self.get("debug")
         try:
             level = getattr(logging, name)
-            self._options["debug"] = level
+            self.options["debug"] = level
         except AttributeError:
             raise ConfigurationException("Wrong value of debug output "
                                          "level ('%s')." % name)

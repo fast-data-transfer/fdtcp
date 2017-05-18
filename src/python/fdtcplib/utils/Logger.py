@@ -95,7 +95,7 @@ class Logger(logging.getLoggerClass()):
                  "reopening for log message: ..." % self.logFile)
             self.log(logging.CRITICAL, m)
             self.log(level, msg)
-            self.log(logging.CRITICAL, "Closing '%s' ..." % self.logFile)
+            self.log(logging.CRITICAL, "Closing '%s' ...", self.logFile)
             tmpHandler.flush()
             tmpHandler.close()
             return
@@ -179,15 +179,15 @@ class Logger(logging.getLoggerClass()):
         """
         pass
 
-    def warning(self, msg):
+    def warning(self, msg, traceBack=False):
         """ Warning level """
         self._myLog(logging.WARNING, msg)
 
-    def warn(self, msg):
+    def warn(self, msg, traceBack=False):
         """ Warning level """
         self._myLog(logging.WARNING, msg)
 
-    def fatal(self, msg, dummytraceBack=False):
+    def fatal(self, msg, traceBack=False):
         """ FATAL level """
         self._myLog(logging.FATAL, msg)
 

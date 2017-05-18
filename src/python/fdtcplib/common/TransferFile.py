@@ -15,6 +15,7 @@ class TransferFile(object):
         # TODO implement per file result filling - must be coordinated
         # with FDT,  will be done later - currently FDT doesn't provide
         # per file results when fileList is used
+        # See: https://github.com/MonALISA-CIT/fdt/issues/5
         self.result = None  # result of the per file transfer
 
     def __str__(self):
