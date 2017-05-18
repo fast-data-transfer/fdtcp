@@ -5,7 +5,7 @@ processes under arbitrary usernames).
 
 Handling standard output, standard error streams.
 """
-
+# TODO Use Pyro4 async return so that we can see stdout/stderr
 import datetime
 import subprocess
 import sys
@@ -27,19 +27,12 @@ class Executor(object):
     Executing external process.
     """
 
-    def __init__(self,
-                 idE,
-                 command,
-                 blocking=False,
-                 caller=None,
-                 catchLogs=True,
-                 port=None,
-                 userName=None,
-                 logOutputToWaitFor=None,
-                 logOutputWaitTime=0,
-                 killTimeout=0,
-                 syncFlag=False,
-                 logger=None):
+    def __init__(self, idE, command,
+                 blocking=False, caller=None,
+                 catchLogs=True, port=None,
+                 userName=None, logOutputToWaitFor=None,
+                 logOutputWaitTime=0, killTimeout=0,
+                 syncFlag=False, logger=None):
         # id of the associated action / request
         self.id = idE
         # actual command to execute in the process

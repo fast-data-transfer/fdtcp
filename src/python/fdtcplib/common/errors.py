@@ -1,4 +1,4 @@
-""" TODO doc """
+""" Custom FDTCP Exceptions """
 
 
 class TimeoutException(Exception):
@@ -42,6 +42,7 @@ class PortReservationException(FDTDException):
     No port is available to be reserved, request has be to rejected.
     """
     pass
+
 
 class PortInUseException(FDTDException):
     """
