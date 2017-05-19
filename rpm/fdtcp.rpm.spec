@@ -2,7 +2,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 Name:           fdtcp
-Version:        0.5
+Version:        0.25
 Release:        1%{?dist}
 Summary:        client/server tools for running persistent fdt services
 
