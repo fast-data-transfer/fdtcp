@@ -6,8 +6,11 @@ processes under arbitrary usernames).
 Handling standard output, standard error streams.
 """
 # TODO Use Pyro4 async return so that we can see stdout/stderr
+from __future__ import print_function
+import Pyro4
 import datetime
 import subprocess
+import select
 import sys
 import tempfile
 import time
@@ -22,6 +25,7 @@ class ExecutorException(Exception):
     pass
 
 
+@Pyro4.expose
 class Executor(object):
     """
     Executing external process.
@@ -98,17 +102,19 @@ class Executor(object):
 
     def _debugDetails(self, indent=4):
         """ TODO doc """
-        r = ""
+        rOut = ""
         ind = ' ' * indent
-        for k, v in list(list(self.__dict__.items())):
+        for k, j in list(list(self.__dict__.items())):
             # not interested in methods
-            if isinstance(v, types.MethodType):
+            if isinstance(j, types.MethodType):
                 continue
-            r = ind.join([r, "'%s': '%s'\n" % (k, v)])
-        return r
+            rOut= ind.join([rOut, "'%s': '%s'\n" % (k, j)])
+        return rOut
 
     def getLogs(self):
         """ TODO doc """
+        return ""
+        # TODO. This has to be fixed now, as logs are pushed directly to client
         self.stdOut.seek(0)  # move pointer back to beginning before read()
         self.stdErr.seek(0)
         delim = 78 * '-'
@@ -120,7 +126,7 @@ class Executor(object):
                       delim))
         return stdOutMsg
 
-    def _handleBlockingProcess(self):
+    def handleBlockingProcess(self):
         """
         Blocking scenario, e.g. FDT client party.
         """
@@ -129,9 +135,9 @@ class Executor(object):
         if self.caller is not None:
             self.caller.addExecutor(self)
 
-        m = "Waiting for '%s' (PID: %s) to finish ..." % (self.command,
-                                                          self.proc.pid)
-        self.logger.info(m)
+        msg = "Waiting for '%s' (PID: %s) to finish ..." % (self.command,
+                                                            self.proc.pid)
+        self.logger.info(msg)
         # waits here
         # however, when the client process gets killed upon a
         # CleanupProcessesAction this call would fail with
@@ -155,19 +161,19 @@ class Executor(object):
 
         # considered returncodes for a synchronous call
         if self.returncode == 0:
-            m = ("Command '%s' finished, no error raised, return code: "
-                 "'%s'\nlogs:\n%s" % (self.command, self.returncode, logs))
+            msg = ("Command '%s' finished, no error raised, return code: "
+                   "'%s'\nlogs:\n%s" % (self.command, self.returncode, logs))
             # comment out now: e.g. in case of FDT Java client error, the
             # process output logs are logged 3 times. the only issue is
             # when fdtcp initiator crashes, there is nowhere to send logs then
             # the same comment applies below ...
             # self.logger.info(m) # log locally at fdtd side
-            return m
+            return msg
         else:
-            m = ("Command '%s' failed, return code: "
-                 "'%s'\nlogs:\n%s" % (self.command, self.returncode, logs))
+            msg = ("Command '%s' failed, return code: "
+                   "'%s'\nlogs:\n%s" % (self.command, self.returncode, logs))
             # self.logger.error(m) # log locally at fdtd side
-            raise ExecutorException(m)
+            raise ExecutorException(msg)
 
     def _handleLogOutputWaiting(self):
         """ TODO doc """
@@ -205,13 +211,12 @@ class Executor(object):
                     pass
         return logs
 
-    def _handleNonBlockingProcess(self):
+    def handleNonBlockingProcess(self):
         """
         Non-blocking scenario, e.g. FDT server party.
         caller is the creator of this Executor class instance.
         caller, if provided, has to have addExecutor() and removeExecutor()
         methods by which this instance registers / de-registers.
-
         """
         # register newly created process with the caller, even if it fails
         # so that subsequent CleanupProcesses action knows about it
@@ -233,58 +238,73 @@ class Executor(object):
         self.returncode = self.proc.poll()
 
         if self.returncode is None:
-            m = ("Command '%s' is running (PID: %s) ...\nlogs:\n%s" %
-                 (self.command, self.proc.pid, logs))
-            return m
+            msg = ("Command '%s' is running (PID: %s) ...\nlogs:\n%s" %
+                   (self.command, self.proc.pid, logs))
+            return msg
         else:
-            m = ("Command '%s' failed, returncode: '%s'\nlogs:\n%s" %
-                 (self.command, self.returncode, logs))
+            msg = ("Command '%s' failed, returncode: '%s'\nlogs:\n%s" %
+                   (self.command, self.returncode, logs))
             # self.logger.error(m) # log locally
-            raise ExecutorException(m)
+            raise ExecutorException(msg)
 
-    def _prepareLogFiles(self):
-        """ TODO doc """
-        # create tmp files for stdOut, stdErr of the process (w+ - read/write)
-        self.stdOut = tempfile.TemporaryFile("w+")
-        self.stdErr = tempfile.TemporaryFile("w+")
-
-        if self.catchLogs:
-            return {"stdout": self.stdOut, "stderr": self.stdErr}
+    def executeWithLogOut(self):
+        """ TODO DOC """
+        while True:
+            reads = [self.proc.stdout.fileno(), self.proc.stderr.fileno()]
+            ret = select.select(reads, [], [])
+            for fd in ret[0]:
+                nextLine = ""
+                if fd == self.proc.stdout.fileno():
+                    nextLine = self.proc.stdout.readline()
+                    yield {"STDOUT": nextLine}
+                if fd == self.proc.stderr.fileno():
+                    nextLine = self.proc.stderr.readline()
+                    yield {"STDERR": nextLine}
+                print(nextLine, end='')
+            if self.proc.poll() is not None:
+                break
+        output = self.proc.communicate()[0]
+        exitCode = self.proc.returncode
+        if exitCode == 0:
+            yield {"ReturnCode": exitCode, "Status": "SUCCESS"}
         else:
-            m = "<catching disabled on request>\n"
-            self.stdOut.write(m)
-            self.stdErr.write(m)
-            return {}
+            yield {"ReturnCode": exitCode, "Status": "FAILED", "OUTPUT": output}
+
 
     def execute(self, conf=None, caller=None, apMon=None, logger=None):
         """ TODO doc """
-        logsConf = self._prepareLogFiles()
-
         self.logger.debug("Executing:\n%s" % self._debugDetails())
 
         # sanity check - if process of the current action id is not
         # already present in the caller's executor container
+        # So this just simply means that users do not make mess with py-library.
+        #
         if self.caller is not None:
             if self.caller.checkExecutorPresence(self):
-                m = ("There already is executor associated with request "
-                     "id '%s' in the caller (FDTD) container! Duplicate "
-                     "request? Something wasn't not cleared up properly?" %
-                     self.id)
-                raise ExecutorException(m)
+                msg = ("There already is executor associated with request "
+                       "id '%s' in the caller (FDTD) container! Duplicate "
+                       "request? Something wasn't not cleared up properly?" %
+                       self.id)
+                raise ExecutorException(msg)
 
         # subprocess.Popen() requires arguments in a sequence, if run
         # with shell=True argument then could take the whole string
         try:
-            self.proc = subprocess.Popen(self.command.split(), **logsConf)
+            self.proc = subprocess.Popen(self.command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         # python 2.4.3 subprocess doesn't have subprocess.CalledProcessError
         except OSError as ex:
             # logs should be available
             logs = self.getLogs()
-            m = ("Command '%s' failed, reason: "
-                 "%s\nlogs:\n%s" % (self.command, ex, logs))
-            raise ExecutorException(m)
+            msg = ("Command '%s' failed, reason: "
+                   "%s\nlogs:\n%s" % (self.command, ex, logs))
+            raise ExecutorException(msg)
+        # register newly created process with the caller, even if it fails
+        # so that subsequent CleanupProcesses action knows about it
+        if self.caller is not None:
+            self.caller.addExecutor(self)
 
-        if self.blocking:
-            return self._handleBlockingProcess()
-        else:
-            return self._handleNonBlockingProcess()
+# This should be called back from caller as we want to get logs back
+#        if self.blocking:
+#            return self._handleBlockingProcess()
+#        else:
+#            return self._handleNonBlockingProcess()

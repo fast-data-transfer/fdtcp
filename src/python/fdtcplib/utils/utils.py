@@ -1,13 +1,30 @@
 """
 Helper routines.
 """
-
-
 import os
 import datetime
 import random
-
 from psutil import Process
+
+
+def getId(srcHostName, dstHostName):
+    """
+    Transfer job / request / id will consist of hostname of the
+    machine fdtcp is invoked on and timestamp. This id will be used
+    in all requests to fdtd for tracking the state of the transfer
+    job, esp. by MonALISA ApMon.
+    Transfers at fdtd will be associated with this ID - make it as
+    unique as possible to avoid collisions.
+    """
+    hostname = getHostName()
+    # u = getUserName()
+    currentDate = getDateTime()
+    randomStr = getRandomString('a', 'z', 5)
+    template = "fdtcp-%(host)s--%(source)s-to-%(dest)s--%(datetime)s-%(randomStr)s"
+    newDict = dict(host=hostname, source=srcHostName, dest=dstHostName,
+                   datetime=currentDate, randomStr=randomStr)
+    idT = template % newDict
+    return idT
 
 
 def getHostName():
@@ -35,11 +52,11 @@ def getRandomString(start, stop, num):
     """
     startInt = ord(start)
     stopInt = ord(stop)
-    r = ""
+    rand = ""
     for dummyi in range(num):
-        c = random.randrange(startInt, stopInt)
-        r = "".join([r, chr(c)])
-    return r
+        character = random.randrange(startInt, stopInt)
+        rand = "".join([rand, chr(character)])
+    return rand
 
 
 def getDateTime():
@@ -47,12 +64,12 @@ def getDateTime():
     Returns date and time in format
     year-month-day-hour-minute-second-microsecond.
     """
-    n = datetime.datetime.now()
+    timeNow = datetime.datetime.now()
     formatDate = "%s-%s-%s-%sh:%sm:%ss"
-    toAlign = (n.year, n.month, n.day, n.hour, n.minute, n.second)
+    toAlign = (timeNow.year, timeNow.month, timeNow.day, timeNow.hour, timeNow.minute, timeNow.second)
     aligned = ["%02d" % i for i in toAlign]
-    r = formatDate % tuple(aligned)
-    return r
+    retVal = formatDate % tuple(aligned)
+    return retVal
 
 
 def getOpenFilesList(offset=4):
