@@ -56,3 +56,15 @@ class AuthServiceException(FDTDException):
     Exception in the AuthService - Java GSI authentication service.
     """
     pass
+
+
+class ExecutorException(Exception):
+    """ Executor Exception. """
+    pass
+
+
+class CleanupProcessException(FDTDException):
+    """
+    Exception in Cleanup Process - Failed to clean process or called non existing method.
+    """
+    pass

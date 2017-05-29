@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 """
 Classes holding details of communication transmitted between fdtcp and fdtd.
 
@@ -69,7 +68,7 @@ class Action(CarrierBase):
         CarrierBase.__init__(self, idA)
         self.timeout = timeout
 
-    def execute(self, conf=None, caller=None, apMon=None, logger=None):
+    def execute(self):
         """ Base class execute. This should be overseeded by super class """
         msg = "Base class (abstract), no implementation execute()"
         raise NotImplementedError(msg)
@@ -113,7 +112,7 @@ class AuthClientAction(Action):
     and forwards this remote Grid user name to local caller (fdtcp)
     and deletes the file.
     """
-
+    # TODO. This has to be grid authentication to be more secure.
     def __init__(self, idA, options):
         self.id = idA
         Action.__init__(self, idA)
@@ -157,8 +156,6 @@ class AuthClientAction(Action):
 
         # no exception was raised during execution (or handled well)
         rObj = Result(self.id)
-        # TODO
-        # this really reliable as authentication result?
         rObj.status = executor.returncode
         rObj.log = output
         return rObj, remoteGridUser

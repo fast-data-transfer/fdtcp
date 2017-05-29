@@ -136,7 +136,7 @@ class FDTDService(object):
         self.initiatedTest = False
 
     def handleServiceStopped(self):
-        """TODO doc """
+        """ Stop the FDTD Service  """
         msg = "%s stopped or is being shutdown ..." % self.__class__.__name__
         self.logger.error(msg)
         raise PyroError(msg)
@@ -169,6 +169,7 @@ class FDTDService(object):
         return logger
 
     def updateAction(self, action, logger):
+        """ Update Action and append known config parameters """
         if 'conf' not in action.keys():
             action['conf'] = self.conf
         if 'caller' not in action.keys():
@@ -178,10 +179,9 @@ class FDTDService(object):
         if 'logger' not in action.keys():
             action['logger'] = logger
 
-
     def service(self, action):
         """ Main call which will make sure that all proxies are stored and available """
-        msg = ("Request received: %s" %  action)
+        msg = ("Request received: %s" % action)
         self.logger.debug(msg)
         # numFiles, filesStr = getOpenFilesList()
         # self.logger.debug("Logging open files: %s items:\n%s" %
@@ -216,7 +216,7 @@ class FDTDService(object):
         try:
             realAction.execute()
             # Also move it back with not a private member
-            self._pyroDaemon.register(realAction)
+            self._pyroDaemon.register(realAction)  # TODO. Double Check, but this might be self.fdtd._pyroDaemon...
             return realAction
         finally:
             msg = ("End of request %s serving.\n%s\n\n\n" %
@@ -349,7 +349,7 @@ class FDTD(object):
             return False
 
     def addExecutor(self, executor):
-        """TODO doc"""
+        """ Check if executor is available and if not append it to executors list"""
         # when logging, use the request-associated logger, not this
         # instance's one
         if self.checkExecutorPresence(executor):
@@ -445,7 +445,7 @@ class FDTD(object):
         return msg
 
     def start(self):
-        """ TODO doc """
+        """ Start FDTD Service """
         objServiceName = self.service.__class__.__name__
         uri = self.pyroDaemon.register(self.service, objServiceName)
         self.logger.info("%s waiting for requests ... ('%s' uri: '%s')" %
@@ -490,8 +490,8 @@ class FDTD(object):
                 if exe.proc.poll() > -1:
                     returnCode = exe.proc.wait()
                     msg = ("Process PID: %s finished, returncode: "
-                         "'%s'\nlogs:\n%s" %
-                         (exe.proc.pid, returnCode, exe.getLogs()))
+                           "'%s'\nlogs:\n%s" %
+                           (exe.proc.pid, returnCode, exe.getLogs()))
                     return msg
                 else:
                     logger.debug("Process PID: %s still runs, waiting ..." %
@@ -522,7 +522,6 @@ class FDTD(object):
 
             killExec = Executor(exe.id,
                                 command,
-                                blocking=True,
                                 logger=logger)
             dummyoutput = killExec.execute()
         except ExecutorException as ex:
@@ -658,7 +657,7 @@ class FDTD(object):
                 stillBound = False
 
     def _signalHandler(self, signum, dummyframe):
-        """ TODO doc """
+        """ Signal Handler to catch signal and do proper logging """
         if signum == signal.SIGALRM:
             self.logger.warn("SIGALRM signal %s caught, raising "
                              "exception." % signum)
@@ -1015,7 +1014,7 @@ def startApplication(conf, logger):
 
 
 def main():
-    """ TODO doc """
+    """ Main FDTD Service execution """
     # all values and action information held in the conf object
     optBackup = sys.argv[:]
     try:

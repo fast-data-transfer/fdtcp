@@ -1,4 +1,14 @@
-""" TODO """
+"""
+Classes holding details of communication transmitted between fdtcp and fdtd.
+
+Implementations of actions - factual starting of FDT Java client/server
+    processes by fdtd
+
+ReceivingServerAction starts FDT process for further communication.
+SendingClientAction will connect to this FDT process and will transmit data.
+
+"""
+from __future__ import print_function
 # TODO remove logger as function argument and use class one
 import os
 import re
@@ -8,8 +18,7 @@ import apmon
 import Pyro4
 from past.utils import old_div
 from fdtcplib.utils.Executor import Executor
-# TODO. This (Executor) has to go inside recv and sender as we want to be able to expose them and work with them
-from fdtcplib.utils.utils import getHostName
+from fdtcplib.utils.utils import getHostName, getApmonObj
 from fdtcplib.common.actions import Action
 from fdtcplib.common.actions import Result
 from fdtcplib.common.errors import FDTDException, PortInUseException
@@ -17,7 +26,7 @@ from fdtcplib.common.errors import FDTDException, PortInUseException
 
 @Pyro4.expose
 class ReceivingServerAction(Action):
-    """ TODO doc """
+    """ Receiving Server Action """
 
     def __init__(self, options):
         """
@@ -47,14 +56,9 @@ class ReceivingServerAction(Action):
         if 'monID' not in self.options:
             self.options["monID"] = self.id
         newOptions = self.options
-        if self.options['circuitClientIP'] and self.options['circuitServerIP']:
-            newOptions['clientIP'] = self.options['circuitClientIP']
         newOptions['apmonDest'] = conf.get("apMonDestinations")
-        print('*'*10)
-        print(newOptions)
-        # Should be object, so need to to check TODO
         if not self.apMon:
-            self.apMon = newOptions['apmonDest']
+            self.apMon = getApmonObj(newOptions['apmonDest'])
         self.command = conf.get("fdtReceivingServerCommand") % newOptions
 
     def _checkTargetFileNames(self, destFiles):
@@ -92,11 +96,6 @@ class ReceivingServerAction(Action):
         self.logger.debug("'%s' problem detected, analyzing running "
                           "processes ..." % errMsg)
         startTime = datetime.datetime.now()
-        # TODO
-        # netstat -tuap (pid is normally not available) so in this
-        # special circumstance had to check connections of all running
-        # processes .. not very elegant solution, shall be revised
-        # once currently very rare #38 problem is understood
         found = False
         procs = psutil.pids()
         self.logger.debug("Going to check %s processes ..." % len(procs))
@@ -155,18 +154,11 @@ class ReceivingServerAction(Action):
         self.logger.debug("Results:\n%s" % self._checkTargetFileNames(destFiles))
         user = self.options["sudouser"]
         self.logger.debug("Local grid user is '%s'" % user)
-        toWaitFor = self.conf.get("fdtServerLogOutputToWaitFor") % dict(port=self.port)
-        toWaitTimeout = self.conf.get("fdtServerLogOutputTimeout")
-        killTimeout = self.conf.get("fdtReceivingServerKillTimeout")
         self.executor = Executor(self.id,
                                  caller=self.caller,
                                  command=self.command,
-                                 blocking=False,
                                  port=self.port,
                                  userName=user,
-                                 logOutputToWaitFor=toWaitFor,
-                                 killTimeout=killTimeout,
-                                 logOutputWaitTime=toWaitTimeout,
                                  logger=self.logger)
         try:
             output = self.executor.execute()
@@ -208,16 +200,16 @@ class ReceivingServerAction(Action):
         return self.status
 
     def getHost(self):
-        """ Returns hostname. TODO """
-        raise NotImplementedError("Test action does not store Host information")
+        """ Returns hostname. """
+        return self.conf.get("hostname") or getHostName()
 
     def getMsg(self):
-        """ Returns messages in queue. TODO """
-        raise NotImplementedError("Test action does not store messages")
+        """ Returns last raised message in the queue """
+        return self.executor.lastMessage()
 
     def getLog(self):
-        """ Returns log files. TODO """
-        raise NotImplementedError("Test action does not store logs")
+        """ Returns log file lines """
+        return self.executor.getLogs()
 
     def getServerPort(self):
         """Returns server port on which it is listening"""
@@ -225,11 +217,9 @@ class ReceivingServerAction(Action):
 
     def executeWithLogOut(self):
         """ Execute transfer which will log everything back to calling client """
-        # Still to think how to do this nicely. Python3 supports multiple yield,
-        # but python2 still has to do with multiple yields in diff function
-        yield 'TO DO'
+        for line in self.executor.executeWithLogOut():
+            yield line
 
     def executeWithOutLogOut(self):
-        """ Execute blocking transfer and transfer logs only at the end of transfer """
-        return
-
+        """ Execute without log output to the client on the fly. Logs can be received from getLog """
+        return self.executor.executeWithOutLogOut()

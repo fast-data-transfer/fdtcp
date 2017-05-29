@@ -2,8 +2,13 @@
 Helper routines.
 """
 import os
+import sys
+import apmon
 import datetime
 import random
+import types
+import traceback
+import linecache
 from psutil import Process
 
 
@@ -84,3 +89,85 @@ def getOpenFilesList(offset=4):
                           for f in files])
     numFiles = len(files)
     return numFiles, filesStr
+
+
+def debugDetails(self, indent=4):
+    """ Format debug details in nice way """
+    rOut = ""
+    ind = ' ' * indent
+    for k, j in list(list(self.__dict__.items())):
+        # not interested in methods
+        if isinstance(j, types.MethodType):
+            continue
+        rOut = ind.join([rOut, "'%s': '%s'\n" % (k, j)])
+    return rOut
+
+
+def getApmonObj(inDest):
+    """ Checks if inDest is an object and if not tries to create one."""
+    if isinstance(inDest, (str, unicode, basestring)):
+        apMonDestinations = tuple(inDest.split(','))
+        apMon = apmon.ApMon(apMonDestinations)
+        apMon.enableBgMonitoring(True)
+        return apMon
+    else:
+        return inDest
+
+
+def getTracebackSimple():
+    """
+    Returns formatted traceback of the most recent exception.
+    """
+    # sys.exc_info() most recent exception
+    trace = traceback.format_exception(*sys.exc_info())
+    noExcepResponse = ['None\n']
+    # this is returned when there is no exception
+    if trace == noExcepResponse:
+        return None
+    tbSimple = "".join(trace)  # may want to add '\n'
+    return tbSimple
+
+
+def getTracebackComplex(localsLevels=5):
+    """
+    Returns formatted traceback of the most recent exception.
+    Could write into a file-like object (argument would be
+    output = sys.stdout), now returns result in formatted string.
+    """
+    tbComplex = "".join([78 * '-', '\n'])
+    tbComplex = "".join([tbComplex, "Problem: %s\n" % sys.exc_info()[1]])
+
+    trace = sys.exc_info()[2]
+    stackString = []
+    while trace is not None:
+        frame = trace.tb_frame
+        lineno = trace.tb_lineno
+        code = frame.f_code
+        filename = code.co_filename
+        function = code.co_name
+        if filename.endswith(".py"):
+            line = linecache.getline(filename, lineno)
+        else:
+            line = None
+        stackString.append((filename, lineno, function, line, frame))
+        trace = trace.tb_next
+
+    tbComplex = "".join([tbComplex, "Traceback:\n"])
+    localsLevel = max(len(stackString) - localsLevels, 0)
+    for i in range(len(stackString)):
+        (filename, lineno, name, line, frame) = stackString[i]
+        outputLine = (" File '%s', line %d, in %s (level %i):\n" %
+                      (filename, lineno, name, i))
+        tbComplex = "".join([tbComplex, outputLine])
+        if line:
+            tbComplex = "".join([tbComplex, "  %s\n" % line])
+        if i >= localsLevel:
+            # want to see complete stack if exception came from a template
+            pass
+
+    tbComplex = "".join([tbComplex, 78 * '-', '\n'])
+
+    del stackString[:]
+    frame = None
+    trace = None
+    return tbComplex

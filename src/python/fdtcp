@@ -61,7 +61,7 @@ try:
     from fdtcplib.common.errors import PortInUseException
     from fdtcplib.utils.Config import ConfigurationException
 except ImportError, ex:
-    print("Can't import dependency modules: %s" % ex)
+    print("Can't import dependency modules: %s. Please report this to system administrator." % ex)
     sys.exit(1)
 
 
@@ -133,14 +133,6 @@ class FDTCopy(object):
     def perform(self, action, allActions, performer, appendToActions=True):
         """ Perform specific action and check result """
         result = self.call(action)
-        # TODO. All exposed actions should have:
-        #  getId
-        #  getStatus
-        #  getHost
-        #  getMsg
-        #  getLog
-        # ReceivingServerAction also:
-        #  serverPort
         status = result.getStatus()
         if status == 0:
             self.logger.info("Success, response: %s" % status)
@@ -173,9 +165,6 @@ class Transfer(object):
         self.conf = conf
         self.apMon = apMon  # instance for ApMon, MonALISA monitoring
         self.logger = logger
-        # if only one will be specified, it will not be a problem. This needs to be printed about problem!
-        self.circuitServerIP = conf.get('servercircuitip')  # TODO CHANGE
-        self.circuitClientIP = conf.get('clientcircuitip')  # TODO CHANGE
         self.portServer = conf.get('portServer')
         self.monID = conf.get('monID')
 
@@ -258,9 +247,7 @@ class Transfer(object):
         # destFiles - list if files at destination - just check (#36)
         destFiles = [f.split(" / ")[1] for f in self.files]
         action = dict(gridUserDest=remoteGridUserDest, clientIP=clientIP,
-                      destFiles=destFiles, circuitServerIP=self.circuitServerIP,
-                      circuitClientIP=self.circuitClientIP,
-                      portServer=self.portServer, monID=self.monID,
+                      destFiles=destFiles, portServer=self.portServer, monID=self.monID,
                       transferId=self.transferId, action='ReceivingServerAction')
         self.receiver.perform(action, self.allActions, 'receiver')
         receiverServerExe = self.allActions['receiver']['ReceivingServerAction']
@@ -278,8 +265,6 @@ class Transfer(object):
         action = dict(port=serverFDTPort, hostDest=self.hostDest,
                       transferFiles=self.files,
                       gridUserSrc=remoteGridUserSrc,
-                      circuitServerIP=self.circuitServerIP,
-                      circuitClientIP=self.circuitClientIP,
                       portServer=self.portServer, monID=self.monID,
                       transferId=self.transferId, action='SendingClientAction')
         # Make sure it does not stop or start execution.

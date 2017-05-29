@@ -1,8 +1,17 @@
-""" TODO """
+"""
+
+Classes holding details of communication transmitted between fdtcp and fdtd.
+
+CleanupProcessesAction make a cleanup correct. Whenever transfer finishes or
+fails with any exception, it should be called to clean up remaining processes.
+
+"""
 import time
 import Pyro4
 from fdtcplib.common.actions import Action
 from fdtcplib.common.actions import Result
+from fdtcplib.utils.utils import getHostName
+from fdtcplib.common.errors import CleanupProcessException
 
 
 @Pyro4.expose
@@ -29,11 +38,12 @@ class CleanupProcessesAction(Action):
         self.logger = self.options['logger']
         self.caller = self.options['caller']
         self.conf = self.options['conf']
+        self.lastMessage = ""
         if 'apmonObj' in self.options.keys():
             self.apMon = self.options['apmonObj']
         self.waitTimeout = True
         if 'waitTimeout' in self.options.keys():
-           self.waitTimeout = self.options['waitTimeout']
+            self.waitTimeout = self.options['waitTimeout']
 
     def execute(self):
         """
@@ -48,20 +58,25 @@ class CleanupProcessesAction(Action):
         exe = self.caller.getExecutor(self.id)
         self.caller.killProcess(self.id, self.logger, waitTimeout=self.waitTimeout)
         if exe and exe.syncFlag:
-            self.logger.debug("Executor %s has syncFlag set, wait until "
-                         "it is unset ..." % exe)
+            msg = "Executor %s has syncFlag set, wait until it is unset ..." % exe
+            self.lastMessage = msg
+            self.logger.debug(msg)
             while True:
                 time.sleep(0.3)
                 if not exe.syncFlag:
                     break
-                self.logger.debug("Executor %s has syncFlag still set, loop "
-                                  "wait." % exe)
-            self.logger.debug("Executor %s has syncFlag not set anymore, "
-                              "continue." % exe)
+                msg = "Executor %s has syncFlag still set, loop wait." % exe
+                self.lastMessage = msg
+                self.logger.debug(msg)
+            msg = "Executor %s has syncFlag not set anymore, continue." % exe
+            self.lastMessage = msg
+            self.logger.debug(msg)
         else:
             if exe:
+                msg = "Executor %s has syncFlag not set, continue." % exe
+                self.lastMessage = msg
                 self.logger.debug("Executor %s has syncFlag not set, "
-                             "continue." % exe)
+                                  "continue." % exe)
 
         rObj = Result(self.id)
         rObj.status = 0
@@ -79,13 +94,25 @@ class CleanupProcessesAction(Action):
         return self.status
 
     def getHost(self):
-        """ Returns hostname. TODO """
-        raise NotImplementedError("Test action does not store Host information")
+        """ Returns hostname """
+        return self.conf.get("hostname") or getHostName()
 
     def getMsg(self):
-        """ Returns messages in queue. TODO """
-        raise NotImplementedError("Test action does not store messages")
+        """ Returns last raised message in the queue """
+        return self.lastMessage
 
     def getLog(self):
-        """ Returns log files. TODO """
-        raise NotImplementedError("Test action does not store logs")
+        """ Returns log file lines """
+        raise CleanupProcessException('CleanUp process does not have getLog method call.')
+
+    def getServerPort(self):
+        """Returns server port on which it is listening"""
+        raise CleanupProcessException('CleanUp process does not have getServerPort method call.')
+
+    def executeWithLogOut(self):
+        """ Execute transfer which will log everything back to calling client """
+        raise CleanupProcessException('CleanUp process does not have executeWithLogOut method call.')
+
+    def executeWithOutLogOut(self):
+        """ Execute without log output to the client on the fly. Logs can be received from getLog """
+        raise CleanupProcessException('CleanUp process does not have executeWithOutLogOut method call.')

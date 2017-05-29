@@ -1,11 +1,17 @@
-""" TODO """
+"""
+Classes holding details of communication transmitted between fdtcp and fdtd.
+
+Implementations of actions - factual starting of FDT Java client/server
+    processes by fdtd
+
+ReceivingServerAction starts FDT process for further communication.
+SendingClientAction will connect to this FDT process and will transmit data.
+"""
+from __future__ import print_function
 import os
-import apmon
-import time
 import Pyro4
 from fdtcplib.utils.Executor import Executor, ExecutorException
-# TODO. This (Executor) has to go inside recv and sender as we want to be able to expose them and work with them
-from fdtcplib.utils.utils import getHostName
+from fdtcplib.utils.utils import getHostName, getApmonObj
 from fdtcplib.common.actions import Action
 from fdtcplib.common.actions import Result
 from fdtcplib.common.errors import FDTDException
@@ -61,8 +67,8 @@ class SendingClientAction(Action):
             self.options["monID"] = self.id
         newOptions = self.options
         newOptions['apmonDest'] = self.conf.get("apMonDestinations")
-        if self.options['circuitClientIP'] and self.options['circuitServerIP']:
-            newOptions['hostDest'] = self.options['circuitServerIP']
+        if not self.apMon:
+            self.apMon = getApmonObj(newOptions['apmonDest'])
 
         self.command = self.conf.get("fdtSendingClientCommand") % newOptions
 
@@ -83,11 +89,8 @@ class SendingClientAction(Action):
         killTimeout = self.conf.get("fdtSendingClientKillTimeout")
         self.executor = Executor(self.id,
                                  self.command,
-                                 blocking=True,
                                  caller=self.caller,
                                  userName=localGridUser,
-                                 killTimeout=killTimeout,
-                                 syncFlag=False,
                                  logger=self.logger)
         try:
             try:
@@ -126,16 +129,16 @@ class SendingClientAction(Action):
         return self.status
 
     def getHost(self):
-        """ Returns hostname. TODO """
-        raise NotImplementedError("Test action does not store Host information")
+        """ Returns hostname. """
+        return self.conf.get("hostname") or getHostName()
 
     def getMsg(self):
-        """ Returns messages in queue. TODO """
-        raise NotImplementedError("Test action does not store messages")
+        """ Returns last raised message in the queue """
+        return self.executor.lastMessage()
 
     def getLog(self):
-        """ Returns log files. TODO """
-        raise NotImplementedError("Test action does not store logs")
+        """ Returns log file lines """
+        return self.executor.getLogs()
 
     def getServerPort(self):
         """Returns server port on which it is listening"""
@@ -143,13 +146,11 @@ class SendingClientAction(Action):
         # This behaviour might change whenever we do pull mode.
 
     def executeWithLogOut(self):
-        """ Execute transfer """
-        # Still to think how to do this nicely. Python3 supports multiple yield,
-        # but python2 still has to do with multiple yields in diff function
+        """ Execute transfer and yield log out to the client """
         for line in self.executor.executeWithLogOut():
-            print(line)
+            print(line, end='')
             yield line
 
     def executeWithOutLogOut(self):
-        """ execute without log output to client """ 
-        return
+        """ Execute without log output to the client on the fly. Logs can be received from getLog """
+        return self.executor.executeWithOutLogOut()

@@ -2,10 +2,9 @@
 Wrapper class for logging module (standard Python module).
 """
 import sys
-import traceback
-import linecache
 import logging
 import pprint
+from fdtcplib.utils.utils import getTracebackSimple
 
 
 class Logger(logging.getLoggerClass()):
@@ -74,7 +73,7 @@ class Logger(logging.getLoggerClass()):
         if traceBack:
             # get last exception traceback
             # add traceback below the normal 'msg' message
-            trace = self.getTracebackSimple()
+            trace = getTracebackSimple()
             if not trace:
                 trace = "<empty exception traceback>"
                 msg = "%s\n\n%s\n\n" % (msg, trace)
@@ -100,7 +99,7 @@ class Logger(logging.getLoggerClass()):
         self.log(level, msg)
 
     def close(self):
-        """ TODO doc """
+        """ Flush all logging handlers and close them."""
         # can't be put into __del__() - gives error (file already closed)
         self._myLog(logging.WARNING, "Logger closing.\n\n\n")
         if self._logFileHandler:
@@ -109,65 +108,8 @@ class Logger(logging.getLoggerClass()):
             self._logFileHandlerOpen = False
 
     def isOpen(self):
-        """ TODO doc """
+        """ check if logging handlers are still open """
         return self._logFileHandlerOpen
-
-    def getTracebackSimple(self):
-        """
-        Returns formatted traceback of the most recent exception.
-        """
-        # sys.exc_info() most recent exception
-        trace = traceback.format_exception(*sys.exc_info())
-        noExcepResponse = ['None\n']
-        # this is returned when there is no exception
-        if trace == noExcepResponse:
-            return None
-        tbSimple = "".join(trace)  # may want to add '\n'
-        return tbSimple
-
-    def getTracebackComplex(self, localsLevels=5):
-        """
-        Returns formatted traceback of the most recent exception.
-        Could write into a file-like object (argument would be
-        output = sys.stdout), now returns result in formatted string.
-        """
-        tbComplex = "".join([78 * '-', '\n'])
-        tbComplex = "".join([tbComplex, "Problem: %s\n" % sys.exc_info()[1]])
-
-        trace = sys.exc_info()[2]
-        stackString = []
-        while trace is not None:
-            frame = trace.tb_frame
-            lineno = trace.tb_lineno
-            code = frame.f_code
-            filename = code.co_filename
-            function = code.co_name
-            if filename.endswith(".py"):
-                line = linecache.getline(filename, lineno)
-            else:
-                line = None
-            stackString.append((filename, lineno, function, line, frame))
-            trace = trace.tb_next
-
-        tbComplex = "".join([tbComplex, "Traceback:\n"])
-        localsLevel = max(len(stackString) - localsLevels, 0)
-        for i in range(len(stackString)):
-            (filename, lineno, name, line, frame) = stackString[i]
-            outputLine = (" File '%s', line %d, in %s (level %i):\n" %
-                          (filename, lineno, name, i))
-            tbComplex = "".join([tbComplex, outputLine])
-            if line:
-                tbComplex = "".join([tbComplex, "  %s\n" % line])
-            if i >= localsLevel:
-                # want to see complete stack if exception came from a template
-                pass
-
-        tbComplex = "".join([tbComplex, 78 * '-', '\n'])
-
-        del stackString[:]
-        frame = None
-        trace = None
-        return tbComplex
 
     def _setWrapperMethods(self):
         """
@@ -177,29 +119,29 @@ class Logger(logging.getLoggerClass()):
         """
         pass
 
-    def warning(self, msg, traceBack=False):
+    def warning(self, msg):
         """ Warning level """
         self._myLog(logging.WARNING, msg)
 
-    def warn(self, msg, traceBack=False):
+    def warn(self, msg):
         """ Warning level """
         self._myLog(logging.WARNING, msg)
 
-    def fatal(self, msg, traceBack=False):
+    def fatal(self, msg):
         """ FATAL level """
         self._myLog(logging.FATAL, msg)
 
-    def error(self, msg, traceBack=False):
+    def error(self, msg):
         """ Error level """
-        self._myLog(logging.ERROR, msg, traceBack=traceBack)
+        self._myLog(logging.ERROR, msg)
 
-    def debug(self, msg, traceBack=False):
+    def debug(self, msg):
         """ Debug level """
-        self._myLog(logging.DEBUG, msg, traceBack=traceBack)
+        self._myLog(logging.DEBUG, msg)
 
-    def critical(self, msg, traceBack=False):
+    def critical(self, msg):
         """ Critical level """
-        self._myLog(logging.CRITICAL, msg, traceBack=traceBack)
+        self._myLog(logging.CRITICAL, msg)
 
     def info(self, msg):
         """ Info level """
