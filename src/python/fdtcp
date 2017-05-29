@@ -34,6 +34,7 @@ transfer which is typically a bunch of files is handled by a single
 FDT client, server pair. Consideration of these partial transfers are
 certainly not a priority at this stage.
 """
+from __future__ import print_function
 import os
 import sys
 import copy
@@ -54,17 +55,13 @@ try:
     from fdtcplib.utils.Executor import ExecutorException
     from fdtcplib.utils.Config import Config
     from fdtcplib.utils.Logger import Logger
-    from fdtcplib.common.actions import TestAction
-    from fdtcplib.common.actions import ReceivingServerAction
-    from fdtcplib.common.actions import SendingClientAction
-    from fdtcplib.common.actions import CleanupProcessesAction
-    from fdtcplib.common.TransferFile import TransferFile
+    from fdtcplib.utils.utils import getId
     from fdtcplib.common.errors import FDTDException, TimeoutException
     from fdtcplib.common.errors import FDTCopyException, FDTCopyShutdownBySignal
     from fdtcplib.common.errors import PortInUseException
     from fdtcplib.utils.Config import ConfigurationException
 except ImportError, ex:
-    print "Can't import dependency modules: %s" % ex
+    print("Can't import dependency modules: %s" % ex)
     sys.exit(1)
 
 
@@ -81,9 +78,9 @@ class FDTCopy(object):
         try:
             self.proxy = Pyro4.Proxy(self.uri)
         except AttributeError as ex:
-            m = "Incorrect URI '%s', could not create PYRO proxy for \
+            msg = "Incorrect URI '%s', could not create PYRO proxy for \
                  FDTD service. Error %s" % (self.uri, ex)
-            raise FDTCopyException(m)
+            raise FDTCopyException(msg)
         # set timeout - if there is a firewall, usually hangs for long
         # this PYRO solution does not work - still hangs for 3 minutes ...
         # -> solution by signal / SIGALARM
@@ -95,57 +92,64 @@ class FDTCopy(object):
         signal.signal(signal.SIGUSR1, self._signalHandler)
 
     def _signalHandler(self, signum, frame):
-        """TODO"""
+        """Signal Handler to be executed at each catched signal"""
         del frame
         if signum == signal.SIGALRM:
             self.logger.warn("SIGALRM signal %s caught, raising exception." % signum)
             raise TimeoutException("Timeout exception.")
-        m = "Signal %s caught, terminating ... " % signum
-        self.logger.fatal(m)
+        msg = "Signal %s caught, terminating ... " % signum
+        self.logger.fatal(msg)
         # raise exception rather than calling .shutdown() directly, this way
         # it can be only shutdown from one place
-        raise FDTCopyShutdownBySignal(m)
+        raise FDTCopyShutdownBySignal(msg)
 
     def call(self, action):
-        """ main call TODO """
-        self.logger.debug("Calling '%s' request: %s\n%s ..." %
-                          (self.uri, action.__class__.__name__, action))
+        """ Call main Service which will register new tag """
+        self.logger.debug("Calling '%s' request: %s\n%s ..." % (self.uri, action['action'], action))
         try:
             try:
-                if action.timeout:
-                    signal.alarm(action.timeout)  # raise alarm in timeout seconds
+                if 'timeout' in action.keys():
+                    signal.alarm(action['timeout'])  # raise alarm in timeout seconds
                 result = self.proxy.service(action)
             finally:
                 signal.alarm(0)  # disable alarm
         except TimeoutException, ex:
-            m = "Call to remote PYRO FDTD service timed-out (remote service down, firewall, or ? ...)."
-            raise FDTCopyException(m)
+            msg = "Call to remote PYRO FDTD service timed-out (remote service down, firewall, or ? ...)."
+            raise FDTCopyException(msg)
         # ProtocolError first, before PyroError
         except ProtocolError, ex:
-            m = "ProtocolError during remote PYRO call, reason: %s" % ex
+            msg = "ProtocolError during remote PYRO call, reason: %s" % ex
             self.logger.error("PYRO call traceback: %s" % ''.join(Pyro4.util.getPyroTraceback()))
-            raise FDTCopyException(m)
+            raise FDTCopyException(msg)
         except ConnectionClosedError, ex:
-            m = "Connection with remote PYRO service lost, try again."
-            raise FDTCopyException(m)
+            msg = "Connection with remote PYRO service lost, try again."
+            raise FDTCopyException(msg)
         except PyroError, ex:
             self.logger.error("PYRO call traceback: %s" % ''.join(Pyro4.util.getPyroTraceback()))
-            m = "PyroError during remote PYRO call, reason: %s" % ex
-            raise FDTCopyException(m)
-        else:
-            # self.logger.debug("Call to remote PYRO service successful.")
-            return result
+            msg = "PyroError during remote PYRO call, reason: %s" % ex
+            raise FDTCopyException(msg)
+        return result
 
-    def perform(self, action):
-        """TODO doc """
+    def perform(self, action, allActions, performer, appendToActions=True):
+        """ Perform specific action and check result """
         result = self.call(action)
-        if result.status == 0:
-            self.logger.info("Success, response: %s" % result)
-            return result
+        # TODO. All exposed actions should have:
+        #  getId
+        #  getStatus
+        #  getHost
+        #  getMsg
+        #  getLog
+        # ReceivingServerAction also:
+        #  serverPort
+        status = result.getStatus()
+        if status == 0:
+            self.logger.info("Success, response: %s" % status)
         else:
-            m = ("Error occurred on host %s id: %s, reason: %s\n"
-                 "remote log:\n%s\n" % (result.host, result.id, result.msg, result.log))
-            raise FDTCopyException(m)
+            msg = "Error occurred on host %s id: %s, reason: %s\n" \
+                  "remote log:\n%s\n" % (result.getHost, result.getId, result.getMsg, result.getLog)
+            raise FDTCopyException(msg)
+        if appendToActions:
+            allActions[performer][action['action']] = result
 
 
 class Transfer(object):
@@ -154,43 +158,46 @@ class Transfer(object):
     Implements group transfers.
     """
     def __init__(self, conf, apMon, logger):
-        self.id = None  # transfer process ID
+        self.transferId = None  # transfer process ID
         self.hostSrc = None  # host name
         self.hostDest = None  # host name
         self.portSrc = None  # port on which fdtd at source site runs
         self.portDest = None  # port on which fdtd at destination site runs
         self.sender = None  # FDTCopy instance to the remote sending FDT client
         self.receiver = None  # FDTCopy instances to the remote receiving FDT server
-        self.files = []  # list of TransferFile - will be translated into fileList
+        self.files = []  # list of files to be transferred
         self.log = None  # transfer log as returned from remote FDTD service
+        self.allActions = {'receiver': {}, 'sender': {}}  # This holds all actions which were executed and returned
         self.result = None  # result of transfer on hosts (or group transfers) level
         self.toCleanup = []  # URI of remote parties to send CleanupProcessAction to
         self.conf = conf
         self.apMon = apMon  # instance for ApMon, MonALISA monitoring
         self.logger = logger
         # if only one will be specified, it will not be a problem. This needs to be printed about problem!
-        self.circuitServerIP = conf.get('servercircuitip')
-        self.circuitClientIP = conf.get('clientcircuitip')
+        self.circuitServerIP = conf.get('servercircuitip')  # TODO CHANGE
+        self.circuitClientIP = conf.get('clientcircuitip')  # TODO CHANGE
         self.portServer = conf.get('portServer')
         self.monID = conf.get('monID')
 
     def __str__(self):
+        msg = ""
         numFiles = len(self.files)
         if numFiles > 1:
-            m = "%s -> %s (%s files)" % (self.hostSrc, self.hostDest, numFiles)
+            msg = "%s -> %s (%s files)" % (self.hostSrc, self.hostDest, numFiles)
         else:
-            m = ("%s:%s -> %s:%s" % (self.hostSrc, self.files[0].fileSrc,
-                                     self.hostDest, self.files[0].fileDest))
-        return m
+            sourceDestFiles = self.files[0].split(" / ")
+            msg = ("%s:%s -> %s:%s" % (self.hostSrc, sourceDestFiles[0],
+                                       self.hostDest, sourceDestFiles[1]))
+        return msg
 
     def setUp(self, hostSrc, portSrc, hostDest, portDest, trFile):
-        """TODO doc """
+        """ Setup URLs and sender/receiver attr. """
         self.files.append(trFile)
         self.hostSrc, self.hostDest = hostSrc, hostDest
         self.portSrc, self.portDest = portSrc, portDest
 
-        uriSrc = "PYROLOC://" + hostSrc + ":" + portSrc + "/FDTDService"
-        uriDest = "PYROLOC://" + hostDest + ":" + portDest + "/FDTDService"
+        uriSrc = "PYRO:FDTDService@" + hostSrc + ":" + portSrc
+        uriDest = "PYRO:FDTDService@" + hostDest + ":" + portDest
 
         # assuming FDT Java client is sender (at respective remote FDTD service)
         # assuming FDT Java server is receiver (at respective remote FDTD service)
@@ -199,17 +206,17 @@ class Transfer(object):
             self.sender = FDTCopy(uriSrc, self.logger)
             self.receiver = FDTCopy(uriDest, self.logger)
         except FDTCopyException, ex:
-            m = "Transfer %s failed, reason: %s" % (self, ex)
-            self.logger.error(m)
-            self.log = m
+            msg = "Transfer %s failed, reason: %s" % (self, ex)
+            self.logger.error(msg)
+            self.log = msg
             self.result = 1
 
     def addFile(self, trFile):
-        """TODO doc """
+        """ Append file to file transfer list """
         self.files.append(trFile)
 
     def performTransfer(self):
-        """TODO doc """
+        """ Perform transfer """
         self.logger.info("Starting transfer  %s" % self)
 
         if self.result is not None:
@@ -219,16 +226,20 @@ class Transfer(object):
         # timeout is used only on TestActions (testing mutual connection)
         # id of the initial action (this test (TestAction)) is later used in all
         # subsequent actions related to this particular transfer
+        #_getId(self, srcHostName, dstHostName):
         timeout = int(self.conf.get("timeout"))
-        testAction = TestAction(self.hostSrc, self.hostDest, timeout=timeout)
-        self.id = testAction.id
+        action = dict(action="TestAction", hostSrc=self.hostSrc, hostDest=self.hostDest, timeout=timeout)
+        self.transferId = getId(self.hostSrc, self.hostDest)
+        action['id'] = self.transferId
 
-        self.logger.info("Testing remote parties availability, "
-                         "transfer id: '%s' ..." % testAction.id)
+        self.logger.debug("Testing remote parties availability, "
+                          "transfer id: '%s' ..." % action['id'])
 
-        self.receiver.perform(testAction)
-        self.sender.perform(testAction)
+        # perform action which returns a Proxy to the called Actions
+        self.receiver.perform(action, self.allActions, 'receiver')
+        self.sender.perform(action, self.allActions, 'receiver')
 
+        # Default grid username is dynes. Later after authentication this changes to real one.
         remoteGridUserSrc = "dynes"
         remoteGridUserDest = "dynes"
         # find out client IP address, server will need it (-f <allowedIPsList>) when starting
@@ -245,15 +256,16 @@ class Transfer(object):
 
         # start receiving server first, information on its port will need the client
         # destFiles - list if files at destination - just check (#36)
-        destFiles = [f.fileDest for f in self.files]
-        options = dict(gridUserDest=remoteGridUserDest, clientIP=clientIP,
-                       destFiles=destFiles, circuitServerIP=self.circuitServerIP,
-                       circuitClientIP=self.circuitClientIP,
-                       portServer=self.portServer, monID=self.monID)
-        recvServerAction = ReceivingServerAction(self.id, options)
-        result = self.receiver.perform(recvServerAction)
-        serverFDTPort = result.serverPort
-        self.logger.info("Remote FDT server: %s:%s" % (result.host, serverFDTPort))
+        destFiles = [f.split(" / ")[1] for f in self.files]
+        action = dict(gridUserDest=remoteGridUserDest, clientIP=clientIP,
+                      destFiles=destFiles, circuitServerIP=self.circuitServerIP,
+                      circuitClientIP=self.circuitClientIP,
+                      portServer=self.portServer, monID=self.monID,
+                      transferId=self.transferId, action='ReceivingServerAction')
+        self.receiver.perform(action, self.allActions, 'receiver')
+        receiverServerExe = self.allActions['receiver']['ReceivingServerAction']
+        serverFDTPort = receiverServerExe.getServerPort()
+        self.logger.info("Remote FDT server: %s:%s" % (receiverServerExe.getHost, serverFDTPort))
 
         # calling the client is synchronous action - waiting until it finishes
         # if the client hangs without progress - may want to kill such remote
@@ -263,21 +275,40 @@ class Transfer(object):
         self.toCleanup.append(self.sender.uri)
 
         # start sending FDT client which initiates the transfer process
-        options = dict(port=serverFDTPort, hostDest=self.hostDest,
-                       transferFiles=self.files,
-                       gridUserSrc=remoteGridUserSrc,
-                       circuitServerIP=self.circuitServerIP,
-                       circuitClientIP=self.circuitClientIP,
-                       portServer=self.portServer, monID=self.monID)
-        sndClientAction = SendingClientAction(self.id, options)
-        # this command will stop the execution flow, for very very long if
-        # the transfer data is bulky - status monitoring via MonALISA
-        # using the transfer id
-        result = self.sender.perform(sndClientAction)
+        action = dict(port=serverFDTPort, hostDest=self.hostDest,
+                      transferFiles=self.files,
+                      gridUserSrc=remoteGridUserSrc,
+                      circuitServerIP=self.circuitServerIP,
+                      circuitClientIP=self.circuitClientIP,
+                      portServer=self.portServer, monID=self.monID,
+                      transferId=self.transferId, action='SendingClientAction')
+        # Make sure it does not stop or start execution.
+        # Whenever we get object back, call object function
+        # executeRealTime, which also yields logs back.
+        # Later we would want to have also special other options:
+        # a) Stream logs from the receiver and server runs in background;
+        # b) Blocking call, which means return logs after execution;
+        # c) More complicated, stream results from sender and receiver in parallel
+        self.sender.perform(action, self.allActions, 'sender')
+        senderServerExe = self.allActions['sender']['SendingClientAction']
 
-        self.logger.info("Transfer result: %s, logs (FDT sending client):\n%s" % (result, result.log))
+        for outLine in senderServerExe.executeWithLogOut():
+            # TODO Here we should check logging with a client specified logging.
+            # Currently lets print only STDOUT
+            if 'STDOUT' in outLine.keys():
+                print(outLine['STDOUT'], end='')
+            #print outLine
+        # TODO: Custom Exceptions are not forwarded back
+        #
+        #
+        #
+        #
+        #
+        # Here we executeRealTime and get logs on the fly...
 
-        self.result = result.status
+        # self.logger.info("Transfer result: %s, logs (FDT sending client):\n%s" % (result, result.log))
+
+        # self.result = result.status
         # don't put the log there for now, but in case of failure it puts the
         # log into result and then into report file
         # self.log = result.log
@@ -297,15 +328,16 @@ class Transfer(object):
             the process.
         """
         if len(self.toCleanup) < 1:
-            self.logger.info("Cleanup action - nothing to clean up, transfer: %s" % self)
+            self.logger.debug("Cleanup action - nothing to clean up, transfer: %s" % self)
             return
 
         cleanupStartTime = datetime.datetime.now()
 
-        self.logger.info("Cleanup action, transfer: %s - terminate remote processes ..." % self)
+        self.logger.debug("Cleanup action, transfer: %s - terminate remote processes ..." % self)
         self.logger.debug("%s items in the clean up container." % len(self.toCleanup))
         timeout = int(self.conf.get("timeout"))
-        cl = CleanupProcessesAction(self.id, timeout=timeout, waitTimeout=waitTimeout)
+        action = dict(action="CleanupProcessesAction", transferId=self.transferId,
+                      timeout=timeout, waitTimeout=waitTimeout)
 
         # iterate the container from the tail, the last one added was client and
         # client should have finished by this point anyway ...
@@ -313,7 +345,6 @@ class Transfer(object):
         # have to have another copy of the container to iterate
         # over, the original will be shrunk
         tmpToCleanup = copy.deepcopy(self.toCleanup)
-
         for uri in tmpToCleanup:
             # have to try to get another PYRO proxy, should the previous one be blocked
             # and every subsequent call on it will time out and will not even be
@@ -321,7 +352,7 @@ class Transfer(object):
             # FDTCopy, resp. PYRO instantiation)
             fdtCopy = FDTCopy(uri, self.logger)
             try:
-                fdtCopy.perform(cl)
+                fdtCopy.perform(action, self.allActions, 'cleanup', appendToActions=False)
             except FDTCopyException, ex:
                 self.logger.error("During clean up: %s" % ex)
             # TODO
@@ -330,17 +361,16 @@ class Transfer(object):
             # above
             #except Exception as ex:
             #    self.logger.error("Unspecified exception during clean up: %s" % ex)
-
-            fdtCopy.proxy._release()
+            fdtCopy.proxy._pyroRelease()
             self.toCleanup.pop()  # reverse, then pop the last item, iterating from the end...
 
         cleanupEndTime = datetime.datetime.now()
         cleanupTime = (cleanupEndTime - cleanupStartTime).seconds
-        par = dict(id=self.id, cleanup=cleanupTime)
+        par = dict(transferId=self.transferId, cleanup=cleanupTime)
         self.logger.debug("Clean up lasted: %s [s]." % cleanupTime)
         if self.apMon:
             self.logger.debug("Sending data to ApMon ...")
-            self.logger.info(par)
+            self.logger.debug(par)
             self.apMon.sendParameters("fdtcp", None, par)
 
 
@@ -373,20 +403,20 @@ class Transfers(object):
         if not pattern.match(urlDest):
             raise FDTCopyException("Wrong format of '%s'" % urlDest)
 
-        m = pattern.search(urlSrc)
-        hostSrc, portSrc, fileSrc = m.group("host"), m.group("port"), m.group("file")
+        regm = pattern.search(urlSrc)
+        hostSrc, portSrc, fileSrc = regm.group("host"), regm.group("port"), regm.group("file")
 
-        m = pattern.search(urlDest)
-        hostDest, portDest, fileDest = m.group("host"), m.group("port"), m.group("file")
+        regm = pattern.search(urlDest)
+        hostDest, portDest, fileDest = regm.group("host"), regm.group("port"), regm.group("file")
 
         # check if such transfer exists, if so, aggregate, if not, create it
         key = "%s:%s-%s:%s" % (hostSrc, portSrc, hostDest, portDest)
         try:
             transfer = self.transfers[key]
-            transfer.addFile(TransferFile(fileSrc, fileDest))
+            transfer.addFile("%s / %s" % (fileSrc, fileDest))
         except KeyError:
             transfer = Transfer(conf, apMon, logger)
-            trFile = TransferFile(fileSrc, fileDest)
+            trFile = "%s / %s" % (fileSrc, fileDest)
             transfer.setUp(hostSrc, portSrc, hostDest, portDest, trFile)
             self.transfers[key] = transfer
 
@@ -406,13 +436,12 @@ class Transfers(object):
                 urls = line.split()
                 urlSrc, urlDest = urls[0], urls[1]
                 self._setTransfer(urlSrc, urlDest, apMon, conf, logger)
-            else:
-                if len(self.transfers) == 0:
-                    raise FDTCopyException("No transfer requests found in '%s'" % fileName)
+            if len(self.transfers) == 0:
+                raise FDTCopyException("No transfer requests found in '%s'" % fileName)
         except IndexError, ex:
             lineNum = index + 1  # count lines from 1 for user-friendly error message
-            m = "Can't parse file '%s', line: '%s' line number: %s, reason: %s" % (fileName, line, lineNum, ex)
-            raise FDTCopyException(m)
+            msg = "Can't parse file '%s', line: '%s' line number: %s, reason: %s" % (fileName, line, lineNum, ex)
+            raise FDTCopyException(msg)
 
 
 class ConfigFDTCopy(Config):
@@ -421,8 +450,7 @@ class ConfigFDTCopy(Config):
        considered.
     """
     def __init__(self, args):
-        usage = \
-                """usage: %prog [options] source_url destination_url
+        usage = """usage: %prog [options] source_url destination_url
                    %prog [options] --copyjobfile=filelist
                    %prog fdt://host1:port/path1/to/file1 fdt://host2:port/path2/to/file2
                 """
@@ -442,7 +470,7 @@ class ConfigFDTCopy(Config):
                         mandInt=self.mandatoryInt, mandStr=self.mandatoryStr)
 
     def _defineCommandLineOptions(self):
-        """TODO doc """
+        """ Defining all command line options """
         helps = "the path to the report file"
         self.parser.add_option("-r", "--report", help=helps)
         helps = "debug output level, for possible values see the config file"
@@ -466,7 +494,6 @@ class ConfigFDTCopy(Config):
         helps = "Monitoring ID with which to report transfer statistics"
         self.parser.add_option("-m", "--monID", help=helps)
 
-
     def processCommandLineOptions(self, args):
         """This method gets called from base class"""
         self._defineCommandLineOptions()
@@ -481,13 +508,13 @@ class ConfigFDTCopy(Config):
                 opts.urlDest = args[-1]
             except IndexError, ex:
                 self.parser.print_help()
-                m = "Incorrect command line options, see --help. Error %s" % ex
-                raise ConfigurationException(m)
+                msg = "Incorrect command line options, see --help. Error %s" % ex
+                raise ConfigurationException(msg)
         else:
             if len(args) > 0:
-                m = ("Incorrect command line options, can't take further "
-                     "arguments along with --copyjobfile, see --help ")
-                raise ConfigurationException(m)
+                msg = ("Incorrect command line options, can't take further "
+                       "arguments along with --copyjobfile, see --help ")
+                raise ConfigurationException(msg)
 
         # want to have _options a dictionary, rather than instance
         # some Values class from within optparse.OptionParser
@@ -502,26 +529,24 @@ def generateReport(transfer, fileName):
     Should multiprocessing transfers be implemented, exclusive access here
     has to be ensured.
     """
-    t = transfer
-    f = open(fileName, "a+")
-    for trf in t.files:
-        o = ("fdt://%s:%s  fdt://%s:%s  %s  %s\n" % (t.hostSrc, trf.fileSrc,
-                                                     t.hostDest, trf.fileDest,
-                                                     t.result, t.log))
-        f.write(o)
-        f.flush()
-    f.close()
+    with open(fileName, "a+") as fd:
+        for trf in transfer.files:
+            outLine = ("fdt://%s:%s  fdt://%s:%s  %s  %s\n" % (transfer.hostSrc, trf.fileSrc,
+                                                               transfer.hostDest, trf.fileDest,
+                                                               transfer.result, transfer.log))
+        fd.write(outLine)
+        fd.flush()
 
-
+# pylint: disable=W1201
 def main():
-    """ TODO doc """
+    """ Main Start of fdtcp execution """
     # all values and action information held in the conf object
     optBackup = sys.argv[:]
     try:
         conf = ConfigFDTCopy(sys.argv[1:])
         conf.sanitize()
     except ConfigurationException, ex:
-        print "fdtcp failed to start, reason: %s" % ex
+        print("fdtcp failed to start, reason: %s" % ex)
         sys.exit(1)
 
     logger = Logger(name="fdtcp", logFile=conf.options.get("logFile"),
@@ -529,11 +554,11 @@ def main():
     # ticket #35 - mercurial expandable keywords in the code
     # information from the SCM (expandable keywords)
     versionInfo = dict(Revision="$Revision: cf25e731af0a $", Tags="$Tags:  $")
-    logger.info("fdtcp starting ... version: %s", logger.pprintFormat(versionInfo))
-    logger.debug("Search sys.path:\n%s\n", logger.pprintFormat(sys.path))
-    logger.debug("PYRO_STORAGE: '%s'", os.environ.get("PYRO_STORAGE"))
+    logger.info("fdtcp starting ... version: %s" % logger.pprintFormat(versionInfo))
+    logger.debug("Search sys.path:\n%s\n" % logger.pprintFormat(sys.path))
+    logger.debug("PYRO_STORAGE: '%s'" % os.environ.get("PYRO_STORAGE"))
 
-    logger.debug("Input command line arguments: '%s'", optBackup)
+    logger.debug("Input command line arguments: '%s'" % optBackup)
     #logger.debug("Configuration values (processed):\n%s\n" %
     #             logger.pprintFormat(conf.options))
 
@@ -541,7 +566,7 @@ def main():
     apMonDestConf = conf.options.get("apMonDestinations")
     if apMonDestConf:
         apMonDestinations = tuple(apMonDestConf.split(','))
-        logger.info("Initializing MonALISA ApMon, destinations: %s ...", (apMonDestinations,))
+        logger.info("Initializing MonALISA ApMon, destinations: %s ..." % (apMonDestinations,))
         apMon = apmon.ApMon(apMonDestinations)
         apMon.enableBgMonitoring(True)
     else:
@@ -592,7 +617,7 @@ def main():
                 logger.error("Transfer failed, reason: %s", ex)
                 transfer.result = 1
                 transfer.log = ex
-                appExitStatus = 1
+                appExitStatus = 3
             except FDTDException, ex:
                 # TODO
                 # this may (most likely) only be raised from authChain from Executor
@@ -601,21 +626,21 @@ def main():
                 logger.error("Transfer failed, reason: %s", ex)
                 transfer.result = 1
                 transfer.log = ex
-                appExitStatus = 1
+                appExitStatus = 4
             except Exception, ex:
-                m = "Exception was caught ('%s'), reason: %s" % (ex.__class__.__name__, ex)
-                logger.error(m)
+                msg = "Exception was caught ('%s'), reason: %s" % (ex.__class__.__name__, ex)
+                logger.error(msg)
                 # will also print remote PYRO traceback
                 logger.fatal(''.join(Pyro4.util.getPyroTraceback()))
                 transfer.result = 1
-                transfer.log = m
-                appExitStatus = 1
+                transfer.log = msg
+                appExitStatus = 5
             except KeyboardInterrupt:
-                m = "Interrupted from keyboard."
-                logger.fatal(m + " Please wait  ...")
+                msg = "Interrupted from keyboard."
+                logger.fatal(msg + " Please wait  ...")
                 transfer.result = 1
-                transfer.log = m
-                appExitStatus = 1
+                transfer.log = msg
+                appExitStatus = 6
                 break
     finally:
         for transfer in transfers.transfers.values():
@@ -627,15 +652,15 @@ def main():
                     # these conditions, do not let fdtd wait timeout period until
                     # the processes may finish on their own
                     transfer.performCleanup(waitTimeout=False)
-                except IOError as er:
-                    logger.error("Got IOError: %s", er)
+                except IOError as ex:
+                    logger.error("Got IOError: %s", ex)
                 #except Exception, ex:
                 #    logger.error("Exception during cleanup, reason: %s" % ex)
                 # check if the actual FDTCopy attribute exists - might have failed while creating it
                 if transfer.sender:
-                    transfer.sender.proxy._release()
+                    transfer.sender.proxy._pyroRelease()
                 if transfer.receiver:
-                    transfer.receiver.proxy._release()
+                    transfer.receiver.proxy._pyroRelease()
             finally:
                 fileName = conf.options.get("report")
                 if fileName:

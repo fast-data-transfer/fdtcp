@@ -1,13 +1,11 @@
 """
 Wrapper class for logging module (standard Python module).
 """
-
 import sys
 import traceback
 import linecache
 import logging
 import pprint
-import types
 
 
 class Logger(logging.getLoggerClass()):
@@ -27,9 +25,9 @@ class Logger(logging.getLoggerClass()):
         self.myLogFile = logFile
 
         if not isinstance(level, int):
-            m = ("Wrong level '%s' option. Must be integer constant from "
-                 "logging module." % level)
-            raise Exception(m)
+            msg = ("Wrong level '%s' option. Must be integer constant from "
+                   "logging module." % level)
+            raise Exception(msg)
 
         # handler for logging into a file, optional
         self.logFile = logFile
@@ -44,8 +42,8 @@ class Logger(logging.getLoggerClass()):
 
         # %(name)-12s gives name as given here: name = "Logger"
         # fs = "%(asctime)s %(name)-8s %(levelname)-9s %(message)s"
-        fs = "%(levelname)-9s %(asctime)s %(name)-8s %(message)s"
-        self._myFormatter = logging.Formatter(fs)
+        formatStr = "%(levelname)-9s %(asctime)s %(name)-8s %(message)s"
+        self._myFormatter = logging.Formatter(formatStr)
 
         if not self.logFile:
             # logging to console, sys.stdout
@@ -63,11 +61,11 @@ class Logger(logging.getLoggerClass()):
         # should be first logging message
         self._myLevel = logging.getLevelName(self.getEffectiveLevel())
 
-        self.pp = pprint.PrettyPrinter(indent=4)
+        self.nicePrint = pprint.PrettyPrinter(indent=4)
 
-        m = ("Logger instance initialised (level: %s, log file: %s)\n%s" %
-             (self._myLevel, self.logFile, 78 * '='))
-        self._myLog(logging.DEBUG, m)
+        msg = ("Logger instance initialised (level: %s, log file: %s)\n%s" %
+               (self._myLevel, self.logFile, 78 * '='))
+        self._myLog(logging.DEBUG, msg)
 
     def _myLog(self, level, msg, traceBack=False):
         """
@@ -91,9 +89,9 @@ class Logger(logging.getLoggerClass()):
             tmpHandler.setLevel(self._myLevel)
             tmpHandler.setFormatter(self._myFormatter)
             self.addHandler(tmpHandler)
-            m = ("Attempt to log into already closed '%s', temporarily "
-                 "reopening for log message: ..." % self.logFile)
-            self.log(logging.CRITICAL, m)
+            msg = ("Attempt to log into already closed '%s', temporarily "
+                   "reopening for log message: ..." % self.logFile)
+            self.log(logging.CRITICAL, msg)
             self.log(level, msg)
             self.log(logging.CRITICAL, "Closing '%s' ...", self.logFile)
             tmpHandler.flush()
@@ -209,14 +207,14 @@ class Logger(logging.getLoggerClass()):
 
     def pprintFormat(self, obj):
         """ print formar of obj """
-        r = self.pp.pformat(obj)
-        return r
+        retMsg = self.nicePrint.pformat(obj)
+        return retMsg
 
     def __del__(self):
         pass
 
     def __str__(self):
-        r = "%s name:%s level:%s logFile:%s" % (self.__class__.__name__,
-                                                self.myName, self._myLevel,
-                                                self.myLogFile)
-        return r
+        retMsg = "%s name:%s level:%s logFile:%s" % (self.__class__.__name__,
+                                                     self.myName, self._myLevel,
+                                                     self.myLogFile)
+        return retMsg

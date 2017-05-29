@@ -16,10 +16,10 @@ def checkWriteableDir(path):
     if os.access(path, os.W_OK):
         return
     else:
-        m = ("PYRO_STORAGE env. variable set or attempt to set to "
-             "'%s', but the location is not writeable." % path)
-        raise RuntimeError(m)
-        
+        msg = ("PYRO_STORAGE env. variable set or attempt to set to "
+               "'%s', but the location is not writeable." % path)
+        raise RuntimeError(msg)
+
 
 # don't change the setting if the variable has been deliberately set before
 

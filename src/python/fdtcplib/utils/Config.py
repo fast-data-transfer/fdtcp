@@ -101,16 +101,16 @@ class Config(object):
                 # (in config file or CLI) with surrounding " or ', remove that
                 # have to check type because among self._mandatoryStr may be
                 # boolean types ...
-                r = self.get(name)
-                if isinstance(r, bytes):
-                    if r[0] in ("'", '"'):
-                        r = r[1:]
-                    if r[-1] in ("'", '"'):
-                        r = r[:-1]
-                    self.options[name] = r
+                rVal = self.get(name)
+                if isinstance(rVal, bytes):
+                    if rVal[0] in ("'", '"'):
+                        rVal = rVal[1:]
+                    if rVal[-1] in ("'", '"'):
+                        rVal = rVal[:-1]
+                    self.options[name] = rVal
         except Exception as ex:
-            m = "Error while parsing %s, reason %s" % (fileName, ex)
-            raise ConfigurationException(m)
+            msg = "Error while parsing %s, reason %s" % (fileName, ex)
+            raise ConfigurationException(msg)
 
         # safe location of the file from which the configuration was loaded
         # apart from this newly defined config value, there will also be
@@ -143,17 +143,17 @@ class Config(object):
             self.parseConfigFile(fname)
 
     def processCommandLineOptions(self, args):
-        """ TODO doc """
+        """ processCommandLineOptions() which is subclassed """
         del args
-        m = ("processCommandLineOptions() not implemented, Config must be "
-             "subclassed.")
-        raise NotImplementedError(m)
+        msg = ("processCommandLineOptions() not implemented, Config must be "
+               "subclassed.")
+        raise NotImplementedError(msg)
 
     def get(self, what):
-        """ TODO doc """
-        r = self.options.get(what, None)
+        """ Custom get from the options """
+        val = self.options.get(what, None)
         # if not defined - return None
-        return r
+        return val
 
     def sanitize(self):
         """
@@ -163,13 +163,13 @@ class Config(object):
         # convert integer values to integers
         for opt in self.mandatoryInt:
             try:
-                v = self.get(opt)
-                i = int(v)
+                val = self.get(opt)
+                i = int(val)
                 self.options[opt] = i
             except (ValueError, TypeError):
-                m = ("Illegal option '%s', expecting integer, got '%s'" %
-                     (opt, v))
-                raise ConfigurationException(m)
+                msg = ("Illegal option '%s', expecting integer, got '%s'" %
+                       (opt, val))
+                raise ConfigurationException(msg)
 
         # checks only presence
         for opt in self.mandatoryInt + self.mandatoryStr:
