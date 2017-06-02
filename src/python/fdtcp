@@ -37,6 +37,7 @@ certainly not a priority at this stage.
 from __future__ import print_function
 import os
 import sys
+import ast
 import copy
 import signal
 import socket
@@ -206,18 +207,17 @@ class Transfer(object):
 
     def performTransfer(self):
         """ Perform transfer """
-        self.logger.info("Starting transfer  %s" % self)
+        self.logger.debug("Starting transfer  %s" % self)
 
         if self.result is not None:
             self.logger.warn("Skipping transfer %s (already failed)." % self)
             return
 
-        # timeout is used only on TestActions (testing mutual connection)
-        # id of the initial action (this test (TestAction)) is later used in all
-        # subsequent actions related to this particular transfer
-        #_getId(self, srcHostName, dstHostName):
-        timeout = int(self.conf.get("timeout"))
-        action = dict(action="TestAction", hostSrc=self.hostSrc, hostDest=self.hostDest, timeout=timeout)
+        # ===========================================================================
+        # START PERFORM TEST ACTION
+        # ===========================================================================
+        action = dict(action="TestAction", hostSrc=self.hostSrc,
+                      hostDest=self.hostDest, timeout=int(self.conf.get("timeout")))
         self.transferId = getId(self.hostSrc, self.hostDest)
         action['id'] = self.transferId
 
@@ -226,22 +226,38 @@ class Transfer(object):
 
         # perform action which returns a Proxy to the called Actions
         self.receiver.perform(action, self.allActions, 'receiver')
-        self.sender.perform(action, self.allActions, 'receiver')
+        self.sender.perform(action, self.allActions, 'sender')
 
-        # Default grid username is dynes. Later after authentication this changes to real one.
-        remoteGridUserSrc = "dynes"
-        remoteGridUserDest = "dynes"
-        # find out client IP address, server will need it (-f <allowedIPsList>) when starting
-        clientIP = socket.gethostbyname(self.hostSrc)
-        self.logger.debug("Client IP address is: '%s'" % clientIP)
-
-        # since the separate log file may not be closed properly once the
-        # ReceivingServer request is send, register the request for possible
-        # cleaning now (issue found during ticket:5#comment:24)
         # no exception was raised, remote process must be running, register for
         # clean up (remote process may however terminate normally, then shall be
         # removed from the container of processes at the remote party)
         self.toCleanup.append(self.receiver.uri)
+        # this remote URI later receives CleanupAction to kill its running processes
+        self.toCleanup.append(self.sender.uri)
+        # ===========================================================================
+        # END PERFORM TEST ACTION
+        # ===========================================================================
+
+        # ===========================================================================
+        # START PERFORM AUTHENTICATION ACTION
+        # ===========================================================================
+        self.logger.debug("Start authentication action with remote parties")
+        # Default grid username is dynes. Later after authentication this changes to real one.
+        remoteGridUserSrc = "dynes"
+        remoteGridUserDest = "dynes"
+        # TODO Authentication
+        self.logger.debug("End authentication action with remote parties")
+        # ===========================================================================
+        # END PERFORM AUTHENTICATION ACTION
+        # ===========================================================================
+
+        # ===========================================================================
+        # START RECEIVING SERVER ACTION
+        # ===========================================================================
+        self.logger.debug("Start receiving server action and receiving object back")
+        # find out client IP address, server will need it (-f <allowedIPsList>) when starting
+        clientIP = socket.gethostbyname(self.hostSrc)
+        self.logger.debug("Client IP address is: '%s'" % clientIP)
 
         # start receiving server first, information on its port will need the client
         # destFiles - list if files at destination - just check (#36)
@@ -252,15 +268,16 @@ class Transfer(object):
         self.receiver.perform(action, self.allActions, 'receiver')
         receiverServerExe = self.allActions['receiver']['ReceivingServerAction']
         serverFDTPort = receiverServerExe.getServerPort()
-        self.logger.info("Remote FDT server: %s:%s" % (receiverServerExe.getHost, serverFDTPort))
+        self.logger.debug("Remote FDT server: %s:%s" % (receiverServerExe.getHost, serverFDTPort))
+        self.logger.debug("END receiving server action and object received")
+        # ===========================================================================
+        # END RECEIVING SERVER ACTION
+        # ===========================================================================
 
-        # calling the client is synchronous action - waiting until it finishes
-        # if the client hangs without progress - may want to kill such remote
-        # process, thus register the remote URI into clean up local container
-        # if something goes wrong, this remote URI later receives CleanupAction
-        # to kill its running processes
-        self.toCleanup.append(self.sender.uri)
-
+        # ===========================================================================
+        # START SENDING SERVER ACTION
+        # ===========================================================================
+        self.logger.debug("Start sending server action and receiving object back")
         # start sending FDT client which initiates the transfer process
         action = dict(port=serverFDTPort, hostDest=self.hostDest,
                       transferFiles=self.files,
@@ -276,23 +293,22 @@ class Transfer(object):
         # c) More complicated, stream results from sender and receiver in parallel
         self.sender.perform(action, self.allActions, 'sender')
         senderServerExe = self.allActions['sender']['SendingClientAction']
+        self.logger.debug("End sending server action and obj was received")
+        # ===========================================================================
+        # END RECEIVING SERVER ACTION
+        # ===========================================================================
 
+        # ===========================================================================
+        # START TRANSFER LOGGING
+        # ===========================================================================
         for outLine in senderServerExe.executeWithLogOut():
-            # TODO Here we should check logging with a client specified logging.
-            # Currently lets print only STDOUT
             if 'STDOUT' in outLine.keys():
-                print(outLine['STDOUT'], end='')
-            #print outLine
-        # TODO: Custom Exceptions are not forwarded back
-        #
-        #
-        #
-        #
-        #
-        # Here we executeRealTime and get logs on the fly...
-
-        # self.logger.info("Transfer result: %s, logs (FDT sending client):\n%s" % (result, result.log))
-
+                self.logger.info(outLine['STDOUT'], end='')
+            if 'STDERR' in outLine.keys():
+                self.logger.debug(outLine['STDERR'], end='')
+        # ===========================================================================
+        # END TRANSFER LOGGING
+        # ===========================================================================
         # self.result = result.status
         # don't put the log there for now, but in case of failure it puts the
         # log into result and then into report file
@@ -340,12 +356,8 @@ class Transfer(object):
                 fdtCopy.perform(action, self.allActions, 'cleanup', appendToActions=False)
             except FDTCopyException, ex:
                 self.logger.error("During clean up: %s" % ex)
-            # TODO
-            # have to be specific about exceptions here, shall exhaust the whole list though
-            # likely FDTDException may happen here and is translated into FDTCopyException
-            # above
-            #except Exception as ex:
-            #    self.logger.error("Unspecified exception during clean up: %s" % ex)
+            except Exception as ex:
+                self.logger.error("Unspecified exception during clean up: %s" % ex)
             fdtCopy.proxy._pyroRelease()
             self.toCleanup.pop()  # reverse, then pop the last item, iterating from the end...
 
@@ -382,11 +394,12 @@ class Transfers(object):
            Same source, destination value is defined by hostSrc:portSrc-hostDest:postDest
         """
         pattern = re.compile("fdt://(?P<host>.*):(?P<port>[0-9]+)/?(?P<file>/.*)")
-
+        logger.debug("Checking %s url if it matches regular expression %s." % (urlSrc, pattern.pattern))
         if not pattern.match(urlSrc):
-            raise FDTCopyException("Wrong format of '%s'" % urlSrc)
+            raise FDTCopyException("Wrong format of '%s'." % urlDest)
+        logger.debug("Checking %s url if it matches regular expression %s." % (urlDest, pattern.pattern))
         if not pattern.match(urlDest):
-            raise FDTCopyException("Wrong format of '%s'" % urlDest)
+            raise FDTCopyException("Wrong format of '%s'." % urlDest)
 
         regm = pattern.search(urlSrc)
         hostSrc, portSrc, fileSrc = regm.group("host"), regm.group("port"), regm.group("file")
@@ -417,6 +430,7 @@ class Transfers(object):
 
         try:
             for index, line in enumerate(lines):
+                logger.debug("Parsing file '%s', line: '%s' line number: %s." % (fileName, line, int(index+1)))
                 line = line.strip()
                 urls = line.split()
                 urlSrc, urlDest = urls[0], urls[1]
@@ -424,8 +438,7 @@ class Transfers(object):
             if len(self.transfers) == 0:
                 raise FDTCopyException("No transfer requests found in '%s'" % fileName)
         except IndexError, ex:
-            lineNum = index + 1  # count lines from 1 for user-friendly error message
-            msg = "Can't parse file '%s', line: '%s' line number: %s, reason: %s" % (fileName, line, lineNum, ex)
+            msg = "Can't parse file '%s', line: '%s' line number: %s, reason: %s" % (fileName, line, int(index+1), ex)
             raise FDTCopyException(msg)
 
 
@@ -457,27 +470,70 @@ class ConfigFDTCopy(Config):
     def _defineCommandLineOptions(self):
         """ Defining all command line options """
         helps = "the path to the report file"
-        self.parser.add_option("-r", "--report", help=helps)
+        self.parser.add_option("--report", help=helps)
         helps = "debug output level, for possible values see the config file"
-        self.parser.add_option("-d", "--debug", help=helps)
+        self.parser.add_option("--debug", help=helps)
         helps = "file containing source_url destination_url pairs"
-        self.parser.add_option("-f", "--copyjobfile", help=helps)
-        helps = "print this help"
-        self.parser.add_option("-h", "--help", help=helps, action='help')
+        self.parser.add_option("--copyjobfile", help=helps)
         helps = "configuration file for fdcp"
-        self.parser.add_option("-c", "--config", help=helps)
+        self.parser.add_option("--config", help=helps)
+        helps = "print this help"
+        self.parser.add_option("--help", help=helps, action='help')
         helps = "timeout in seconds for initial connectivity tests"
-        self.parser.add_option("-t", "--timeout", help=helps)
+        self.parser.add_option("--timeout", help=helps)
         helps = "optional argument - output log file"
-        self.parser.add_option("-l", "--logFile", help=helps)
-        helps = "optional argument for specifying client circuit IP"
-        self.parser.add_option("-i", "--clientcircuitip", help=helps)
-        helps = "optional argument for specifying server circuit IP"
-        self.parser.add_option("-y", "--servercircuitip", help=helps)
-        helps = "Port which user for transfers. This overcomes the default configuration on the server"
-        self.parser.add_option("-p", "--portServer", help=helps)
+        self.parser.add_option("--logFile", help=helps)
         helps = "Monitoring ID with which to report transfer statistics"
-        self.parser.add_option("-m", "--monID", help=helps)
+        self.parser.add_option("--monID", help=helps)
+        #
+        #  EXPERT OPTIONS!
+        #
+        helps = "optional argument for specifying client custom IP. For dual NIC nodes"
+        self.expertOptions.add_option("--customClientIP", help=helps)
+        helps = "optional argument for specifying server circuit IP. For dual NIC nodes."
+        self.expertOptions.add_option("--customServerIP", help=helps)
+        helps = "Port which user for transfers. This overcomes the default configuration on the server"
+        self.expertOptions.add_option("--portServer", help=helps)
+        helps = "Window size. Set TCP SO_SND_BUFFER window size to windowSize for the client session."
+        self.expertOptions.add_option("--windowSize", help=helps)
+        helps = "Number of parallel streams(sockets). FDT by default uses 4 streams"
+        self.expertOptions.add_option("--streams", help=helps)
+        # TODO. Allow to specify K/M/G prefixes
+        helps = "Restrict the transfer speed at the specified rate. Specify in KB/s"
+        self.expertOptions.add_option("--rateLimit", help=helps)
+        # TODO. Allow to specify K/M/G prefixes
+        helps = "BufferSize. Size for the I/O buffers The default value is 1MByte. Specify in KB"
+        self.expertOptions.add_option("--bufferSize", help=helps)
+        helps = "Disables file locking on the writer side. Default this flag is false, which means\
+                 FDT will acquire an exclusive file lock for the file which is written"
+        self.expertOptions.add_option("--noFileLock", help=helps)
+        helps = "Disables intermediate hidden file creation. Without this flag FDT transfers a /localDir/fileName \
+                 to an intermediate hidden file /destinationDir/.fileName and, after the content of the file is \
+                 transfered, it moves the file to /destinationDir/fileName."
+        self.expertOptions.add_option("--noTmpFile", help=helps)
+        helps = "Number of writer threads per partition."
+        self.expertOptions.add_option("--writersCount", help=helps)
+        helps = "Number of reader threads per partition."
+        self.expertOptions.add_option("--readerrsCount", help=helps)
+        helps = "Blocking I/O mode. In the blocking mode every stream(socket) will use a thread to perform the I/O. \
+                 By Default blocking mode is used."
+        self.expertOptions.add_option("--blockingIO", help=helps)
+        helps = "Non blocking I/O retry factor. Repeat every read/write operation (non-blocking I/O mode only), \
+                 which returns 0, up to <iof> times before waiting for I/O readiness.Default is 1."
+        self.expertOptions.add_option("--ioRetry", help=helps)
+        helps = "XMS. Initial Java heap size to be set in servers"
+        self.expertOptions.add_option("--xms", help=helps)
+        helps = "XMX. Maximum Java heap size to be set in servers"
+        self.expertOptions.add_option("--xmx", help=helps)
+        helps = "In case user specified value is not satisfied at server, use server default value. Default is True. \
+                 If set to False, it will raise configuration exception with more details."
+        self.expertOptions.add_option("--satisfyConfig", help=helps)
+        helps = "Network test mode. The source and destination options can be omitted. If present, will be ignored! \
+                 FDT will act only as a network benchmark tool. If the server is started with this flag *ALL* network \
+                 transfers will be considered benchmark transfers! If boolean (true|false) specified, will run endless \
+                 network test. In case integer, for a specific time of seconds."
+        self.expertOptions.add_option("--nettest", help=helps)
+        self.parser.add_option_group(self.expertOptions)
 
     def processCommandLineOptions(self, args):
         """This method gets called from base class"""
@@ -488,11 +544,13 @@ class ConfigFDTCopy(Config):
         opts, args = self.parser.parse_args(args=args)
 
         if not opts.copyjobfile:
+            if len(args) < 2:
+                msg = "Source and destination is not specified, see --help."
+                raise ConfigurationException(msg)
             try:
                 opts.urlSrc = args[-2]
                 opts.urlDest = args[-1]
             except IndexError, ex:
-                self.parser.print_help()
                 msg = "Incorrect command line options, see --help. Error %s" % ex
                 raise ConfigurationException(msg)
         else:
@@ -504,7 +562,7 @@ class ConfigFDTCopy(Config):
         # want to have _options a dictionary, rather than instance
         # some Values class from within optparse.OptionParser
         # self._options = opts
-        self.options = eval(str(opts))
+        self.options = ast.literal_eval(str(opts))
 
 
 def generateReport(transfer, fileName):
@@ -533,29 +591,26 @@ def main():
     except ConfigurationException, ex:
         print("fdtcp failed to start, reason: %s" % ex)
         sys.exit(1)
-
     logger = Logger(name="fdtcp", logFile=conf.options.get("logFile"),
                     level=conf.options.get("debug"))
     # ticket #35 - mercurial expandable keywords in the code
     # information from the SCM (expandable keywords)
     versionInfo = dict(Revision="$Revision: cf25e731af0a $", Tags="$Tags:  $")
-    logger.info("fdtcp starting ... version: %s" % logger.pprintFormat(versionInfo))
+    logger.debug("fdtcp starting ... version: %s" % logger.pprintFormat(versionInfo))
     logger.debug("Search sys.path:\n%s\n" % logger.pprintFormat(sys.path))
     logger.debug("PYRO_STORAGE: '%s'" % os.environ.get("PYRO_STORAGE"))
 
     logger.debug("Input command line arguments: '%s'" % optBackup)
-    #logger.debug("Configuration values (processed):\n%s\n" %
-    #             logger.pprintFormat(conf.options))
 
     apMon = None
     apMonDestConf = conf.options.get("apMonDestinations")
     if apMonDestConf:
         apMonDestinations = tuple(apMonDestConf.split(','))
-        logger.info("Initializing MonALISA ApMon, destinations: %s ..." % (apMonDestinations,))
+        logger.debug("Initializing MonALISA ApMon, destinations: %s ..." % (apMonDestinations,))
         apMon = apmon.ApMon(apMonDestinations)
         apMon.enableBgMonitoring(True)
     else:
-        logger.info("MonALISA ApMon is not enabled, no destinations provided.")
+        logger.debug("MonALISA ApMon is not enabled, no destinations provided.")
 
     # use DNS names rather than IP address
     # Pyro.config.PYRO_DNS_URI = True
@@ -574,7 +629,7 @@ def main():
                          "failure on this stage ...")
         if apMon:
             apMon.free()
-        logger.warn("fdtcp finished.")
+        logger.debug("fdtcp finished.")
         logger.close()
         sys.exit(1)
 

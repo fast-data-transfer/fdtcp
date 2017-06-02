@@ -12,7 +12,7 @@ class Logger(logging.getLoggerClass()):
     Customised Logger. Logging either to console or into a file.
     """
 
-    def __init__(self, name="Logger", logFile=None, level=logging.DEBUG):
+    def __init__(self, name="Logger", logFile=None, level=logging.INFO):
         """
         Input check: if file doesn't exist, it's created. Wrong file name or
         insufficient rights result into IOError which is propagated.
@@ -101,7 +101,7 @@ class Logger(logging.getLoggerClass()):
     def close(self):
         """ Flush all logging handlers and close them."""
         # can't be put into __del__() - gives error (file already closed)
-        self._myLog(logging.WARNING, "Logger closing.\n\n\n")
+        self._myLog(logging.DEBUG, "Logger closing.\n\n\n")
         if self._logFileHandler:
             self._logFileHandler.flush()
             self._logFileHandler.close()

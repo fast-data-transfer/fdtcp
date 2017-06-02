@@ -10,9 +10,10 @@ while defined command line options override values from the config file.
 Instance of Config is a store of application's configuration values.
 """
 import os
+import ast
 import logging
 from ConfigParser import RawConfigParser
-from optparse import OptionParser, TitledHelpFormatter
+from optparse import OptionParser, TitledHelpFormatter, OptionGroup
 
 from future import standard_library
 standard_library.install_aliases()
@@ -56,6 +57,7 @@ class Config(object):
                                    formatter=form,
                                    add_help_option=None)
         self.options = {}
+        self.expertOptions = OptionGroup(self.parser, "Expert Options", "Caution: use these options at your own risk.")
         self.mandatoryInt = mandInt
         self.mandatoryStr = mandStr
         # implemented in the subclass - particular command line interface
@@ -66,7 +68,7 @@ class Config(object):
         self.processConfigFile(configFileLocations)
 
     def parseConfigFile(self, fileName):
-        """ TODO doc """
+        """ Parse configuration file, otherwise raise exception"""
         if not os.path.exists(fileName):
             raise ConfigurationException("Config file %s does not exist." %
                                          fileName)
@@ -77,37 +79,49 @@ class Config(object):
         # this way they should be case-sensitive
         config.optionxform = str
         config.read(fileName)  # does not fail even on non existing file
+        self.options['configcontrols'] = {}
         try:
-            # assume only one section 'general'
-            for (name, value) in config.items("general"):
-                # setting only values which do not already exist, if a value
-                # already exists - it means it was specified on the command
-                # line and such value takes precedence over configuration file
-                # beware - attribute may exist from command line parser
-                # and be None - then set proper value here
-                if self.get(name) is None:
-                    self.options[name] = value
+            for sectionName in config.sections():
+                for (name, value) in config.items(sectionName):
+                    # setting only values which do not already exist, if a value
+                    # already exists - it means it was specified on the command
+                    # line and such value takes precedence over configuration file
+                    # beware - attribute may exist from command line parser
+                    # and be None - then set proper value here
+                    if sectionName == 'configcontrols':
+                        newVal = {}
+                        try:
+                            newVal = ast.literal_eval(value)
+                        except Exception:
+                            msg = "Error while parsing %s, reason %s" % (fileName, ex)
+                            raise ConfigurationException(msg)
+                        self.options[sectionName][name] = newVal
+                        continue
 
-                # to some strings types processing ...
-                if isinstance(self.get(name), bytes):
-                    # convert 'True', 'False' strings to bool values
-                    # True, False
-                    if value.lower() == 'true':
-                        self.options[name] = True
-                    if value.lower() == 'false':
-                        self.options[name] = False
+                    if self.get(name) is None:
+                        self.options[name] = value
 
-                # if the configuration value is string and has been defined
-                # (in config file or CLI) with surrounding " or ', remove that
-                # have to check type because among self._mandatoryStr may be
-                # boolean types ...
-                rVal = self.get(name)
-                if isinstance(rVal, bytes):
-                    if rVal[0] in ("'", '"'):
-                        rVal = rVal[1:]
-                    if rVal[-1] in ("'", '"'):
-                        rVal = rVal[:-1]
-                    self.options[name] = rVal
+                    # to some strings types processing ...
+                    # Maybe it is a json?
+                    if isinstance(self.get(name), bytes):
+                        # convert 'True', 'False' strings to bool values
+                        # True, False
+                        if value.lower() == 'true':
+                            self.options[name] = True
+                        if value.lower() == 'false':
+                            self.options[name] = False
+
+                    # if the configuration value is string and has been defined
+                    # (in config file or CLI) with surrounding " or ', remove that
+                    # have to check type because among self._mandatoryStr may be
+                    # boolean types ...
+                    rVal = self.get(name)
+                    if isinstance(rVal, bytes):
+                        if rVal[0] in ("'", '"'):
+                            rVal = rVal[1:]
+                        if rVal[-1] in ("'", '"'):
+                            rVal = rVal[:-1]
+                        self.options[name] = rVal
         except Exception as ex:
             msg = "Error while parsing %s, reason %s" % (fileName, ex)
             raise ConfigurationException(msg)
